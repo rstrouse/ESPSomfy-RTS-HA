@@ -1,0 +1,10 @@
+ws_onhamessage:
+  name: On HA Message
+  description: Get all the emits from ESPSomfy RTS Device.
+  fields:
+    force:
+      name: Force
+      description: Force update. "true" to force, or "false" to omit for a regular refresh.
+      default: false
+      selector:
+        boolean:
