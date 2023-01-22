@@ -3,11 +3,7 @@
   "name": "ESPSomfy RTS",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/espsomfy_rts",
-  "requirements": [
-    "python-socketio[asyncio_client]>=4.0.0",
-    "websocket-client==1.4.2",
-    "rel==0.4.7"
-  ],
+  "requirements": ["websocket-client==1.4.2"],
   "ssdp": [
     {
       "deviceType": "urn:schemas-rstrouse-org:device:ESPSomfyRTS:1"
