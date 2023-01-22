@@ -132,7 +132,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initiated by zeroconf."""
         if user_input is not None:
             server_id = user_input["server_id"]
-            title = f"{user_input[CONF_HOST]} - {server_id}"
             return self.async_create_entry(
                 title=f"ESP Somfy RTS {server_id}", data=user_input
             )

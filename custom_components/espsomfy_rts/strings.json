@@ -12,8 +12,11 @@
         "description": "[%key:common::config_flow::description::confirm_setup%]"
       },
       "zeroconf_confirm": {
-        "description": "Do you want to add Device `{model}` `{server_id}` to Home Assistant?",
-        "title": "ESPSomfy RTS Device Found"
+        "description": "Do you want to add {model} with server id {server_id} to Home Assistant?",
+        "title": "ESPSomfy RTS Discovered",
+        "data": {
+          "host": "IP address for the ESPSomfy RTS device"
+        }
       }
     },
     "error": {
