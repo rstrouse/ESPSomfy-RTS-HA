@@ -1,27 +1,25 @@
 """Config flow for ESPSomfy RTS."""
 from __future__ import annotations
 
-from .controller import ESPSomfyAPI, ESPSomfyController, DiscoveryError, InvalidHost
-from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.const import CONF_HOST
-from homeassistant.util.network import is_host_valid
-from homeassistant.components import zeroconf
-
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import aiohttp_client
-from homeassistant.helpers.selector import (
-    TextSelector,
-    TextSelectorType,
-    TextSelectorConfig,
-)
+from typing import Any
 
 import voluptuous as vol
 
+from homeassistant import config_entries
+from homeassistant.components import zeroconf
+from homeassistant.const import CONF_HOST
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers.selector import (
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
+from homeassistant.util.network import is_host_valid
 
 from .const import DOMAIN
-
-from typing import Any
+from .controller import DiscoveryError, ESPSomfyAPI, ESPSomfyController, InvalidHost
 
 DATA_SCHEMA = vol.Schema(
     {
@@ -58,6 +56,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self.controller: ESPSomfyController = None
         self.zero_conf = None
+        self.server_id = None
+        self.host = None
 
     async def async_step_user(self, user_input: dict[str, Any] = None) -> FlowResult:
         """Handle the flow initialized by the user."""
@@ -95,13 +95,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._async_abort_entries_match({CONF_HOST: discovery_info.host})
 
         # Check if already configured
-        await self.async_set_unique_id(discovery_info.properties["serverId"])
+        await self.async_set_unique_id(discovery_info.properties["serverid"])
         self._abort_if_unique_id_configured()
-
         self.context.update(
             {
                 "title_placeholders": {
-                    "server_id": discovery_info.properties["serverId"],
+                    "server_id": discovery_info.properties["serverid"],
                     "model": discovery_info.properties["model"],
                 }
             }
@@ -113,7 +112,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle a flow initiated by zeroconf."""
         if user_input is not None:
-            title = f"{self.controller.model} {self.controller.server_id}"
+            server_id = user_input["server_id"]
+            title = f"{user_input[CONF_HOST]} - {server_id}"
             return self.async_create_entry(
                 title=title,
                 data={
