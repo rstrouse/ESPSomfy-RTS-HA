@@ -1,11 +1,11 @@
 """ESPSomfy parent entity class."""
 from __future__ import annotations
 
-
 from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .controller import ESPSomfyController
+
 from .const import DOMAIN, MANUFACTURER
+from .controller import ESPSomfyController
 
 
 class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):

@@ -1,0 +1,30 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Configure ESPSomfy RTS",
+                "description": "Enter the host/ip address for the ESPSomfy RTS device",
+                "data": {
+                "host": "The ip address for the ESPSomfy RTS device"
+                }
+            },
+            "zeroconf_confirm": {
+                "description": "Do you want to add {model} with server id {server_id} to Home Assistant?",
+                "title": "ESPSomfy RTS Discovered",
+                "data": {
+                    "host": "IP address for the ESPSomfy RTS device"
+                }
+            }
+        },
+        "error": {
+            "invalid_host": "Invalid host",
+            "cannot_connect": "Failed to connect to ESP device",
+            "unknown": "Unexpected error",
+            "discovery_error": "Device not found"
+        },
+        "abort": {
+            "single_instance_allowed": "Only one istance is allowed",
+            "no_devices_found": "No devices found"
+        }
+    }
+}

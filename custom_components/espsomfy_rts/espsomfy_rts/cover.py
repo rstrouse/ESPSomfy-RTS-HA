@@ -1,21 +1,21 @@
 """Support for ESPSomfy RTS Shades."""
 from __future__ import annotations
 
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .controller import ESPSomfyController
-from .const import DOMAIN, EVT_SHADESTATE, EVT_SHADEREMOVED, EVT_CONNECTED
+from typing import Any
 
 from homeassistant.components.cover import (
+    ATTR_POSITION,
     CoverDeviceClass,
     CoverEntity,
     CoverEntityFeature,
-    ATTR_POSITION,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE
+from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
-from typing import Any
 
 
 async def async_setup_entry(

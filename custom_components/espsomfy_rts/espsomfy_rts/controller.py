@@ -1,37 +1,35 @@
 """Controller for all the devices"""
 from __future__ import annotations
 
-import logging
-import websocket
-import json
 import asyncio
+import json
+import logging
 import threading
-import aiohttp
-
 from threading import Timer
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
-from homeassistant.helpers import aiohttp_client, entity_registry, device_registry
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity_registry import async_entries_for_config_entry
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.const import CONF_HOST, Platform
-from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
-
 from typing import Any
 
+import aiohttp
+import websocket
+
+from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
+from homeassistant.const import CONF_HOST, Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import aiohttp_client, device_registry, entity_registry
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity_registry import async_entries_for_config_entry
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 from .const import (
-    DOMAIN,
-    API_SHADES,
-    API_SHADECOMMAND,
     API_DISCOVERY,
-    EVT_SHADESTATE,
+    API_SHADECOMMAND,
+    API_SHADES,
+    DOMAIN,
+    EVT_CONNECTED,
     EVT_SHADEADDED,
     EVT_SHADEREMOVED,
-    EVT_CONNECTED,
+    EVT_SHADESTATE,
 )
-
 
 _LOGGER = logging.getLogger(__name__)
 

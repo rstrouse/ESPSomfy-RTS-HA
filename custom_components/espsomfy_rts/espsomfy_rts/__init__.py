@@ -1,14 +1,13 @@
 """The ESPSomfy RTS integration."""
 from __future__ import annotations
 
-import asyncio
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform, EVENT_HOMEASSISTANT_STOP
-from homeassistant.core import HomeAssistant, Event
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import DOMAIN
-from .controller import ESPSomfyController, ESPSomfyAPI
+from .controller import ESPSomfyAPI, ESPSomfyController
 
 # For your initial PR, limit it to 1 platform.
 PLATFORMS: list[Platform] = [Platform.COVER]
