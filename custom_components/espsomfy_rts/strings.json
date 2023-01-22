@@ -10,6 +10,10 @@
       },
       "confirm": {
         "description": "[%key:common::config_flow::description::confirm_setup%]"
+      },
+      "zeroconf_confirm": {
+        "description": "Do you want to add Device `{model}` `{server_id}` to Home Assistant?",
+        "title": "ESPSomfy RTS Device Found"
       }
     },
     "error": {
