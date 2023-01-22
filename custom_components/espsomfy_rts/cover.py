@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from typing import Any
+import voluptuous as vol
+
 
 from homeassistant.components.cover import (
     ATTR_POSITION,
@@ -11,11 +13,18 @@ from homeassistant.components.cover import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 
 from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE
 from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
+
+SVC_OPEN_SHADE = "open_shade"
+SVC_CLOSE_SHADE = "close_shade"
+SVC_STOP_SHADE = "stop_shade"
+SVC_SET_SHADE_POS = "set_shade_position"
 
 
 async def async_setup_entry(
@@ -33,6 +42,16 @@ async def async_setup_entry(
             pass
     if new_shades:
         async_add_entities(new_shades)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service(
+        SVC_SET_SHADE_POS,
+        {vol.Required(ATTR_POSITION): cv.string},
+        "async_set_cover_position",
+    )
+    platform.async_register_entity_service(SVC_OPEN_SHADE, {}, "async_open_cover")
+    platform.async_register_entity_service(SVC_CLOSE_SHADE, {}, "async_close_cover")
+    platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
 
 
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):

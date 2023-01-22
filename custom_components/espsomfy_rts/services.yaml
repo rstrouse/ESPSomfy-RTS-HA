@@ -1,10 +1,43 @@
-ws_onhamessage:
-  name: On HA Message
-  description: Get all the emits from ESPSomfy RTS Device.
+open_shade:
+  name: Open Shade
+  description: Opens the shade to 100% open
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+
+close_shade:
+  name: Close Shade
+  description: Closes the shade to 100% closed
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+
+stop_shade:
+  name: Stop Shade
+  description: Stops the shade at the current position
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+
+set_shade_postion:
+  name: Set Position
+  description: Sets the position to % of open
   fields:
-    force:
-      name: Force
-      description: Force update. "true" to force, or "false" to omit for a regular refresh.
-      default: false
+    position:
+      name: position
+      description: Percentage of open for the shade
+      required: true
+      example: 50
       selector:
-        boolean:
+        text:
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+
+
+
+
