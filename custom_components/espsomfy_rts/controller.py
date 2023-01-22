@@ -115,7 +115,7 @@ class SocketListener(threading.Thread):
 
     def ws_begin(self) -> None:
         """Begin running the thread"""
-        self.running_future = self.ws_app.run_forever(ping_interval=5, ping_timeout=3)
+        self.running_future = self.ws_app.run_forever(ping_interval=25, ping_timeout=20)
         # print("Fell out of run_runforever")
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.reconnect)
