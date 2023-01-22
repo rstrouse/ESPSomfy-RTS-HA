@@ -118,7 +118,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         self.context.update(
             {
-                CONF_HOST: discovery_info.host,
                 "title_placeholders": {
                     "server_id": server_id,
                     "model": discovery_info.properties.get("model", ""),
@@ -133,8 +132,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initiated by zeroconf."""
         if user_input is not None:
             server_id = self.zero_conf.properties.get("serverId", "")
+            data = {
+                "server_id": server_id,
+                CONF_HOST: self.zero_conf.host,
+                "model": self.zero_conf.properties.get("model", ""),
+            }
             return self.async_create_entry(
-                title=f"ESP Somfy RTS {server_id}", data=user_input
+                title=f"ESP Somfy RTS {server_id}", data=data
             )
         return self.async_show_form(
             step_id="zeroconf_confirm",
