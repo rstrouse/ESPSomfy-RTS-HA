@@ -6,7 +6,7 @@
 This integration requires hardware that uses an ESP32 microcontroller and a CC1101 transceiver.  Setup for this controller can be found at the [ESPSomfy RTS hardware repositiory](https://github.com/rstrouse/ESPSomfy-RTS).  You must have one of these inexpensive radios configured for your shades.
 
 # Installation
-The easiest way to get going is to install this integration in Home Assistant using HACS as a [Custom Repository](https://hacs.xyz/docs/faq/custom_repositories/).  As an alternative you may install it manually by copying the contents of the `custom_components` folder to the `config/custom_components` directory of you Home Assistant installation.
+The easiest way to get going is to install this integration in Home Assistant using HACS as a [Custom Repository](https://hacs.xyz/docs/faq/custom_repositories/).  As an alternative you may install it manually by copying the contents of the `custom_components` folder to the `config/custom_components` directory of your Home Assistant installation.
 
 ## Setup
 Setup is a snap and ESPSomfy-RTS will automatically detect any radio devices on your local network for inclusion in home assistant.
