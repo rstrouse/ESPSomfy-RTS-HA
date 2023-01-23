@@ -12,7 +12,7 @@ The easiest way to get going is to install this integration in Home Assistant us
 Setup is a snap and ESPSomfy-RTS will automatically detect any radio devices on your local network for inclusion in home assistant.
 
 # Functionality
-Once configured you will be able to open, close, and set the position of your shades using home assistant.  The integration will monitor the position of the position of the shade regardless of how it was opened or closed.  This includes opening or closing it using a Telis remote.  Shades can be added to your dashboards and automated with Home Assistant services through automations.
+Once configured you will be able to open, close, and set the position of your shades using home assistant.  The integration will monitor the position of the shade regardless of how it was opened or closed.  This includes opening or closing it using a Telis remote.  Shades can be added to your dashboards and automated with Home Assistant services through automations.
 
 ![image](https://user-images.githubusercontent.com/47839015/213933858-95042e9e-0874-4e58-8123-87146439a20e.png)
 
