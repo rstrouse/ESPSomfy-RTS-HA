@@ -38,6 +38,37 @@ set_shade_postion:
       integration: espsomfy_rts
       domain: cover
 
+tilt_open:
+  name: Tilt Open
+  description: Tilts the slats open
+  target:
+    integration: espsomfy_rts
+    domain: cover
+
+tilt_close:
+  name: Tilt Close
+  description: Tilts the slats closed
+  target:
+    integration: espsomfy_rts
+    domain: cover
+
+set_tilt_postion:
+  name: Set Position
+  description: Sets the tilt position to % of open
+  fields:
+    position:
+      name: position
+      description: Percentage of open for the shade slats
+      required: true
+      example: 50
+      selector:
+        text:
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+
+
 
 
 

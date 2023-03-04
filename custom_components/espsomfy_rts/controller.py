@@ -11,6 +11,7 @@ from typing import Any
 import aiohttp
 import websocket
 
+
 from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
 from homeassistant.const import CONF_HOST, Platform
 from homeassistant.core import HomeAssistant
@@ -23,6 +24,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import (
     API_DISCOVERY,
     API_SHADECOMMAND,
+    API_TILTCOMMAND,
     API_SHADES,
     DOMAIN,
     EVT_CONNECTED,
@@ -220,21 +222,36 @@ class ESPSomfyController(DataUpdateCoordinator):
         for entity in async_entries_for_config_entry(entities, self.config_entry_id):
             if entity.unique_id == uuid:
                 return
+        dev_features = (CoverEntityFeature.OPEN
+            | CoverEntityFeature.CLOSE
+            | CoverEntityFeature.STOP
+            | CoverEntityFeature.SET_POSITION)
+
+        dev_class = CoverDeviceClass.SHADE
+        if "shadeType" in data:
+            match int(data["shadeType"]):
+                case 1:
+                    dev_class = CoverDeviceClass.BLIND
+                    if "hasTilt" in data and data["hasTilt"] is True:
+                        dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
+                case 2:
+                    dev_class = CoverDeviceClass.CURTAIN
+                case _:
+                    dev_class = CoverDeviceClass.SHADE
+
+
         # Reload all the shades
         # self.api.load_shades()
         # I have no idea whether this reloads the devices or not.
         entities.async_get_or_create(
             domain=DOMAIN,
             platform=Platform.COVER,
-            original_device_class=CoverDeviceClass.SHADE,
+            original_device_class=dev_class,
             unique_id=uuid,
             device_id=device.id,
             original_name=data["name"],
             suggested_object_id=f"{str(data['name']).lower().replace(' ', '_')}",
-            supported_features=CoverEntityFeature.OPEN
-            | CoverEntityFeature.CLOSE
-            | CoverEntityFeature.STOP
-            | CoverEntityFeature.SET_POSITION,
+            supported_features=dev_features,
         )
         print(f"Shade not found {uuid} and one was added")
 
@@ -333,6 +350,19 @@ class ESPSomfyAPI:
             else:
                 _LOGGER.error(await resp.text())
 
+    async def tilt_open(self, shade_id: int):
+        """Send the command to open the tilt"""
+        await self.tilt_command({"shadeId": shade_id, "command": "up"})
+
+    async def tilt_close(self, shade_id: int):
+        """Send the command to close the tilt"""
+        await self.tilt_command({"shadeId": shade_id, "command": "down"})
+
+    async def position_tilt(self, shade_id: int, position: int):
+        """Send the command to position the shade"""
+        print(f"Setting tilt position to {position}")
+        await self.tilt_command({"shadeId": shade_id, "target": position})
+
     async def open_shade(self, shade_id: int):
         """Send the command to open the shade"""
         await self.shade_command({"shadeId": shade_id, "command": "up"})
@@ -353,6 +383,16 @@ class ESPSomfyAPI:
         """Send commands to ESPSomfyRTS via PUT request"""
         async with self._session.put(
             f"{self._api_url}{API_SHADECOMMAND}", json=data
+        ) as resp:
+            if resp.status == 200:
+                pass
+            else:
+                _LOGGER.error(await resp.text())
+
+    async def tilt_command(self, data):
+        """Send commands to ESPSomfyRTS via PUT request"""
+        async with self._session.put(
+            f"{self._api_url}{API_TILTCOMMAND}", json=data
         ) as resp:
             if resp.status == 200:
                 pass

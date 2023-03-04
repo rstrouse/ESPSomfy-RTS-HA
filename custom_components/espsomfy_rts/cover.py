@@ -1,4 +1,4 @@
-"""Support for ESPSomfy RTS Shades."""
+"""Support for ESPSomfy RTS Shades and Blinds."""
 from __future__ import annotations
 
 from typing import Any
@@ -7,6 +7,7 @@ import voluptuous as vol
 
 from homeassistant.components.cover import (
     ATTR_POSITION,
+    ATTR_TILT_POSITION,
     CoverDeviceClass,
     CoverEntity,
     CoverEntityFeature,
@@ -25,6 +26,9 @@ SVC_OPEN_SHADE = "open_shade"
 SVC_CLOSE_SHADE = "close_shade"
 SVC_STOP_SHADE = "stop_shade"
 SVC_SET_SHADE_POS = "set_shade_position"
+SVC_TILT_OPEN = "tilt_open"
+SVC_TILT_CLOSE = "tilt_close"
+SVC_SET_TILT_POS = "set_tilt_position"
 
 
 async def async_setup_entry(
@@ -49,9 +53,16 @@ async def async_setup_entry(
         {vol.Required(ATTR_POSITION): cv.string},
         "async_set_cover_position",
     )
+    platform.async_register_entity_service(
+        SVC_SET_TILT_POS,
+        {vol.Required(ATTR_POSITION): cv.string},
+        "async_set_cover_tilt_position",
+    )
     platform.async_register_entity_service(SVC_OPEN_SHADE, {}, "async_open_cover")
     platform.async_register_entity_service(SVC_CLOSE_SHADE, {}, "async_close_cover")
     platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
+    platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_tilt_open")
+    platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
 
 
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
@@ -62,10 +73,13 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._controller = controller
         self._shade_id = data["shadeId"]
         self._position = data["position"]
+        self._tilt_postition = 100
+        self._tilt_direction = 0
         self._attr_unique_id = f"{controller.unique_id}_{self._shade_id}"
         self._attr_name = data["name"]
         self._direction = 0
         self._available = True
+        self._has_tilt = False
 
         self._attr_device_class = CoverDeviceClass.SHADE
         self._attr_supported_features = (
@@ -74,6 +88,24 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             | CoverEntityFeature.STOP
             | CoverEntityFeature.SET_POSITION
         )
+        if "hasTilt" in data and data["hasTilt"] is True:
+            self._attr_supported_features |= (
+                CoverEntityFeature.OPEN_TILT
+                | CoverEntityFeature.CLOSE_TILT
+                | CoverEntityFeature.SET_TILT_POSITION
+            )
+            self._has_tilt = True
+            self._tilt_postition = data["tiltPosition"] if "tiltPosition" in data else 100
+            self._tilt_direction = data["tiltDirection"] if "tiltDirecion" in data else 0
+        if "shadeType" in data:
+            match data["shadeType"]:
+                case 1:
+                    self._attr_device_class = CoverDeviceClass.BLIND
+                case 2:
+                    self._attr_device_class = CoverDeviceClass.CURTAIN
+                case _:
+                    self._attr_device_class = CoverDeviceClass.SHADE
+
 
         self._attr_is_closed: bool = False
         # print(f"Set up shade {self._attr_unique_id} - {self._attr_name}")
@@ -87,6 +119,13 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                         self._position = int(self._controller.data["position"])
                     if "direction" in self._controller.data:
                         self._direction = int(self._controller.data["direction"])
+                    if "hasTilt" in self._controller.data:
+                        self._has_tilt = self._controller.data["hasTilt"]
+                    if self._has_tilt is True:
+                        if "tiltDirection" in self._controller.data:
+                            self._tilt_direction = int(self._controller.data["tiltDirection"])
+                        if "tiltPosition" in self._controller.data:
+                            self._tilt_postition = int(self._controller.data["tiltPosition"])
                     self._available = True
                 elif self._controller.data["event"] == EVT_SHADEREMOVED:
                     self._available = False
@@ -109,9 +148,15 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         return False
 
     @property
-    def current_cover_position(self) -> int:
+    def current_cover_position(self) -> int | None:
         """Return the current position of the shade."""
         return 100 - self._position
+    @property
+    def current_cover_tilt_position(self) -> int | None:
+        """Return current position of cover tilt. 0 is closed, 100 is open."""
+        if not self._has_tilt:
+            return None
+        return 100 - self._tilt_postition
 
     @property
     def is_opening(self) -> bool:
@@ -132,6 +177,19 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     def is_open(self) -> bool:
         """Return true if cover is closed."""
         return self._position == 0
+
+    async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
+        """Set the tilt postion"""
+        await self._controller.api.position_tilt(
+            self._shade_id, 100 - kwargs[ATTR_TILT_POSITION]
+        )
+    async def async_open_cover_tilt(self, **kwargs: Any) -> None:
+        """Open the tilt position"""
+        await self._controller.api.tilt_open(self._shade_id)
+
+    async def async_close_cover_tilt(self, **kwargs: Any) -> None:
+        """Close the tilt position"""
+        await self._controller.api.tilt_close(self._shade_id)
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Set the cover position."""
