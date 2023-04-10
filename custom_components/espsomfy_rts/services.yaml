@@ -22,51 +22,57 @@ stop_shade:
       integration: espsomfy_rts
       domain: cover
 
-set_shade_postion:
+set_shade_position:
   name: Set Position
-  description: Sets the position to % of open
-  fields:
-    position:
-      name: position
-      description: Percentage of open for the shade
-      required: true
-      example: 50
-      selector:
-        text:
+  description: Sets the position to percentage of open
   target:
     entity:
       integration: espsomfy_rts
       domain: cover
+  fields:
+    position:
+      name: Position
+      description: The position of the shade
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
 
 tilt_open:
   name: Tilt Open
   description: Tilts the slats open
   target:
-    integration: espsomfy_rts
-    domain: cover
+    entity:
+      integration: espsomfy_rts
+      domain: cover
 
 tilt_close:
   name: Tilt Close
   description: Tilts the slats closed
   target:
-    integration: espsomfy_rts
-    domain: cover
+    entity:
+      integration: espsomfy_rts
+      domain: cover
 
-set_tilt_postion:
-  name: Set Position
-  description: Sets the tilt position to % of open
-  fields:
-    position:
-      name: position
-      description: Percentage of open for the shade slats
-      required: true
-      example: 50
-      selector:
-        text:
+set_tilt_position:
+  name: Set Tilt Position
+  description: Sets the tilt position to percentage of open
   target:
     entity:
       integration: espsomfy_rts
       domain: cover
+  fields:
+    position:
+      name: Position
+      description: Tilt position of the slats
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
 
 
 

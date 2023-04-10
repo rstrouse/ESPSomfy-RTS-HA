@@ -1,10 +1,10 @@
 """Support for ESPSomfy RTS Shades and Blinds."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Final
 import voluptuous as vol
 
-
+from homeassistant.const import ATTR_CODE
 from homeassistant.components.cover import (
     ATTR_POSITION,
     ATTR_TILT_POSITION,
@@ -14,6 +14,7 @@ from homeassistant.components.cover import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -29,6 +30,10 @@ SVC_SET_SHADE_POS = "set_shade_position"
 SVC_TILT_OPEN = "tilt_open"
 SVC_TILT_CLOSE = "tilt_close"
 SVC_SET_TILT_POS = "set_tilt_position"
+
+POSITION_SERVICE_SCHEMA: Final = make_entity_service_schema(
+    {vol.Optional(ATTR_CODE): cv.string}
+)
 
 
 async def async_setup_entry(
@@ -50,12 +55,12 @@ async def async_setup_entry(
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
         SVC_SET_SHADE_POS,
-        {vol.Required(ATTR_POSITION): cv.string},
+        POSITION_SERVICE_SCHEMA,
         "async_set_cover_position",
     )
     platform.async_register_entity_service(
         SVC_SET_TILT_POS,
-        {vol.Required(ATTR_POSITION): cv.string},
+        POSITION_SERVICE_SCHEMA,
         "async_set_cover_tilt_position",
     )
     platform.async_register_entity_service(SVC_OPEN_SHADE, {}, "async_open_cover")

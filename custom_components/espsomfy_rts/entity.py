@@ -27,7 +27,6 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
             identifiers={(DOMAIN, self.controller.unique_id)},
             name="ESPSomfy RTS",
             manufacturer=MANUFACTURER,
-            suggested_area="Windows",
             model=self.controller.model,
             sw_version=self.controller.version,
         )
