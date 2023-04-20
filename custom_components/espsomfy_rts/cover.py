@@ -102,8 +102,17 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             self._has_tilt = True
             self._tilt_postition = data["tiltPosition"] if "tiltPosition" in data else 100
             self._tilt_direction = data["tiltDirection"] if "tiltDirecion" in data else 0
+        if "tiltType" in data:
+            match int(data["tiltType"]):
+                case 1 | 2 | 3:
+                    self._has_tilt = True
+                    self._attr_supported_features |= (
+                        CoverEntityFeature.OPEN_TILT
+                        | CoverEntityFeature.CLOSE_TILT
+                        | CoverEntityFeature.SET_TILT_POSITION
+                    )
         if "shadeType" in data:
-            match data["shadeType"]:
+            match int(data["shadeType"]):
                 case 1:
                     self._attr_device_class = CoverDeviceClass.BLIND
                 case 2:
@@ -126,6 +135,12 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                         self._direction = int(self._controller.data["direction"])
                     if "hasTilt" in self._controller.data:
                         self._has_tilt = self._controller.data["hasTilt"]
+                    if "tiltType" in self._controller.data:
+                        match int(self._controller.data["tiltType"]):
+                            case 1 | 2 | 3:
+                                self._has_tilt = True
+                            case _:
+                                self._has_tilt = False
                     if self._has_tilt is True:
                         if "tiltDirection" in self._controller.data:
                             self._tilt_direction = int(self._controller.data["tiltDirection"])

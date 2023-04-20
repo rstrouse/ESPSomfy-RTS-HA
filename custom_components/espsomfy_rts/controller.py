@@ -232,8 +232,13 @@ class ESPSomfyController(DataUpdateCoordinator):
             match int(data["shadeType"]):
                 case 1:
                     dev_class = CoverDeviceClass.BLIND
-                    if "hasTilt" in data and data["hasTilt"] is True:
-                        dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
+                    if "tiltType" in data:
+                        match int(data["tiltType"]):
+                            case 1 | 2:
+                                dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
+                    else:
+                        if "hasTilt" in data and data["hasTilt"] is True:
+                            dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
                 case 2:
                     dev_class = CoverDeviceClass.CURTAIN
                 case _:
