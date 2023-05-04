@@ -32,7 +32,7 @@ SVC_TILT_CLOSE = "tilt_close"
 SVC_SET_TILT_POS = "set_tilt_position"
 
 POSITION_SERVICE_SCHEMA: Final = make_entity_service_schema(
-    {vol.Optional(ATTR_CODE): cv.string}
+    {vol.Optional(ATTR_POSITION): cv.string}
 )
 
 
