@@ -114,14 +114,12 @@ class SocketListener(threading.Thread):
     def close(self) -> None:
         """Synonym for stop."""
         self.stop()
-
     def ws_begin(self) -> None:
         """Begin running the thread"""
         self.running_future = self.ws_app.run_forever(ping_interval=25, ping_timeout=20)
         # print("Fell out of run_runforever")
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.reconnect)
-
     def ws_onerror(self, wsapp, exception):
         """An error occurred on the socket connection"""
         # print(f"We have an error {exception}")
@@ -365,7 +363,7 @@ class ESPSomfyAPI:
 
     async def position_tilt(self, shade_id: int, position: int):
         """Send the command to position the shade"""
-        print(f"Setting tilt position to {position}")
+        # print(f"Setting tilt position to {position}")
         await self.tilt_command({"shadeId": shade_id, "target": position})
 
     async def open_shade(self, shade_id: int):

@@ -64,7 +64,7 @@ set_tilt_position:
       integration: espsomfy_rts
       domain: cover
   fields:
-    position:
+    tilt_position:
       name: Position
       description: Tilt position of the slats
       required: true
