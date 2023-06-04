@@ -21,6 +21,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE
 from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
+from .switch import ESPSomfySunSwitch
 
 SVC_OPEN_SHADE = "open_shade"
 SVC_CLOSE_SHADE = "close_shade"
@@ -54,6 +55,11 @@ async def async_setup_entry(
     for shade in controller.api.shades:
         try:
             new_shades.append(ESPSomfyShade(controller, shade))
+            if "shadeType" in shade:
+                match(shade["shadeType"]):
+                    case 3:
+                        new_shades.append(ESPSomfySunSwitch(controller, shade))
+
         except KeyError:
             pass
     if new_shades:
@@ -75,6 +81,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
     platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_tilt_open")
     platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
+
 
 
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
@@ -124,6 +131,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     self._attr_device_class = CoverDeviceClass.BLIND
                 case 2:
                     self._attr_device_class = CoverDeviceClass.CURTAIN
+                case 3:
+                    self._attr_device_class = CoverDeviceClass.AWNING
                 case _:
                     self._attr_device_class = CoverDeviceClass.SHADE
 
@@ -173,11 +182,26 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     def should_poll(self) -> bool:
         """Indicates whether the shade should poll for information"""
         return False
+    @property
+    def icon(self) -> str:
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            if self.is_open:
+                return "mdi:storefront-outline"
+            return "mdi:storefront"
+        if hasattr(self, "_attr_icon"):
+            return self._attr_icon
+        if hasattr(self, "entity_description"):
+            return self.entity_description.icon
+        return None
+
 
     @property
     def current_cover_position(self) -> int | None:
         """Return the current position of the shade."""
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            return self._position
         return 100 - self._position
+
     @property
     def current_cover_tilt_position(self) -> int | None:
         """Return current position of cover tilt. 0 is closed, 100 is open."""
@@ -220,19 +244,32 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Set the cover position."""
-        await self._controller.api.position_shade(
-            self._shade_id, 100 - int(kwargs[ATTR_POSITION])
-        )
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            await self._controller.api.position_shade(
+                self._shade_id, int(kwargs[ATTR_POSITION])
+            )
+        else:
+            await self._controller.api.position_shade(
+                self._shade_id, 100 - int(kwargs[ATTR_POSITION])
+            )
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
         # print(f"Opening Cover id#{self._shade_id}")
-        await self._controller.api.open_shade(self._shade_id)
+        # This is ridiculous in that we need to invert these
+        # if the type is an awning.
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            await self._controller.api.close_shade(self._shade_id)
+        else:
+            await self._controller.api.open_shade(self._shade_id)
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close cover."""
         # print(f"Closing Cover id#{self._shade_id}")
-        await self._controller.api.close_shade(self._shade_id)
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            await self._controller.api.open_shade(self._shade_id)
+        else:
+            await self._controller.api.close_shade(self._shade_id)
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Hold cover."""

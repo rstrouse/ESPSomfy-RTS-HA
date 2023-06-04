@@ -366,6 +366,14 @@ class ESPSomfyAPI:
         # print(f"Setting tilt position to {position}")
         await self.tilt_command({"shadeId": shade_id, "target": position})
 
+    async def sun_flag_off(self, shade_id: int):
+        """Send the command to turn off the sun flag"""
+        await self.shade_command({"shadeId": shade_id, "command": "flag"})
+
+    async def sun_flag_on(self, shade_id: int):
+        """Send the command to turn off the sun flag"""
+        await self.shade_command({"shadeId": shade_id, "command": "sunflag"})
+
     async def open_shade(self, shade_id: int):
         """Send the command to open the shade"""
         await self.shade_command({"shadeId": shade_id, "command": "up"})
