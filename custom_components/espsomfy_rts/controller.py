@@ -301,7 +301,9 @@ class ESPSomfyAPI:
     @property
     def shades(self) -> Any:
         """Return the state attributes."""
-        return self._config["shades"]
+        if "shades" in self._config:
+            return self._config["shades"]
+        return []
 
     @property
     def server_id(self) -> str:
