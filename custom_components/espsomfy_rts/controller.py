@@ -239,6 +239,8 @@ class ESPSomfyController(DataUpdateCoordinator):
                             dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
                 case 2:
                     dev_class = CoverDeviceClass.CURTAIN
+                case 3:
+                    dev_class = CoverDeviceClass.AWNING
                 case _:
                     dev_class = CoverDeviceClass.SHADE
 

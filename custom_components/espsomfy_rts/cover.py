@@ -184,14 +184,14 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         return False
     @property
     def icon(self) -> str:
-        if self._attr_device_class == CoverDeviceClass.AWNING:
-            if self.is_open:
-                return "mdi:storefront-outline"
-            return "mdi:storefront"
         if hasattr(self, "_attr_icon"):
             return self._attr_icon
         if hasattr(self, "entity_description"):
             return self.entity_description.icon
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            if self.is_closed:
+                return "mdi:storefront-outline"
+            return "mdi:storefront"
         return None
 
 
@@ -222,11 +222,15 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_closed(self) -> bool:
         """Return true if cover is closed."""
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            return self._position == 0
         return self._position == 100
 
     @property
     def is_open(self) -> bool:
         """Return true if cover is closed."""
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            return self._position == 100
         return self._position == 0
 
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
