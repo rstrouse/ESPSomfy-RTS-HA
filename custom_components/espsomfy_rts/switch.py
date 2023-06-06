@@ -29,7 +29,6 @@ async def async_setup_entry(
                 match(shade["shadeType"]):
                     case 3:
                         new_entities.append(ESPSomfySunSwitch(controller, shade))
-                        hasSunFlag = True
 
         except KeyError:
             pass
@@ -50,7 +49,7 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
         self._attr_has_entity_name = False
         self._available = True
         if "flags" in data:
-            self._value = bool(int(data["flags"]) & 0x01)
+            self._value = bool((int(data["flags"]) & 0x01) == 0x01)
         else:
             self._value = False
 
@@ -62,7 +61,7 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
                     self._controller.data["event"] == EVT_SHADESTATE
                     and "flags" in self._controller.data
                 ):
-                    self._value = bool(int(self._controller.data["flags"]) & 0x01)
+                    self._value = bool((int(self._controller.data["flags"]) & 0x01) == 0x01)
                 self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
