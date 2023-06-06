@@ -1,4 +1,4 @@
-"""Sensors related to ESPSomfy-RTS-HA"""
+"""Binary sensors related to ESPSomfy-RTS-HA"""
 from __future__ import annotations
 
 
@@ -47,11 +47,10 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
         self._attr_unique_id = f"sun_{controller.unique_id}_{self._shade_id}"
         self._attr_name = data["name"]
         self._attr_has_entity_name = False
-        self._available = True
         if "flags" in data:
-            self._value = bool((int(data["flags"]) & 0x20) == 0x20)
+            self._attr_is_on = bool((int(data["flags"]) & 0x20) == 0x20)
         else:
-            self._value = False
+            self._attr_is_on = False
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -61,34 +60,12 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
                     self._controller.data["event"] == EVT_SHADESTATE
                     and "flags" in self._controller.data
                 ):
-                    self._value = bool((int(self._controller.data["flags"]) & 0x20) == 0x20)
-                self.async_write_ha_state()
-
-    @property
-    def should_poll(self) -> bool:
-        return False
-
-    @property
-    def available(self) -> bool:
-        return self._available
-
-    @property
-    def name(self) -> str:
-        return self._attr_name
-
-    @property
-    def native_value(self) -> bool | None:
-        """Raw value of the sensor"""
-        return self._value
-
-    @property
-    def is_on(self) -> bool:
-        "Return true if there is sun"
-        return self._value
+                    self._attr_is_on = bool((int(self._controller.data["flags"]) & 0x20) == 0x20)
+                    self.async_write_ha_state()
 
     @property
     def icon(self) -> str:
-        if self._value:
+        if self.is_on:
             return "mdi:weather-sunny"
         return "mdi:weather-sunny-off"
 
@@ -103,11 +80,10 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
         self._attr_unique_id = f"wind_{controller.unique_id}_{self._shade_id}"
         self._attr_name = data["name"]
         self._attr_has_entity_name = False
-        self._available = True
         if "flags" in data:
-            self._value = bool((int(data["flags"]) & 0x10) == 0x10)
+            self._attr_is_on = bool((int(data["flags"]) & 0x10) == 0x10)
         else:
-            self._value = False
+            self._attr_is_on = False
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -117,33 +93,11 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
                     self._controller.data["event"] == EVT_SHADESTATE
                     and "flags" in self._controller.data
                 ):
-                    self._value = bool((int(self._controller.data["flags"]) & 0x10) == 0x10)
+                    self._attr_is_on = bool((int(self._controller.data["flags"]) & 0x10) == 0x10)
                 self.async_write_ha_state()
 
     @property
-    def should_poll(self) -> bool:
-        return False
-
-    @property
-    def available(self) -> bool:
-        return self._available
-
-    @property
-    def name(self) -> str:
-        return self._attr_name
-
-    @property
-    def native_value(self) -> bool | None:
-        """Raw value of the sensor"""
-        return self._value
-
-    @property
-    def is_on(self) -> bool:
-        "Return true if there is sun"
-        return self._value
-
-    @property
     def icon(self) -> str:
-        if self._value:
+        if self.is_on:
             return "mdi:wind-power"
         return "mdi:wind-power-outline"

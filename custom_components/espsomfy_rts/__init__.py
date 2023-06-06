@@ -10,7 +10,11 @@ from .const import DOMAIN
 from .controller import ESPSomfyAPI, ESPSomfyController
 
 # For your initial PR, limit it to 1 platform.
-PLATFORMS: list[Platform] = [Platform.COVER, Platform.SWITCH, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.COVER,
+    Platform.SWITCH,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

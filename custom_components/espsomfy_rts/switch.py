@@ -44,14 +44,14 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
         super().__init__(controller=controller)
         self._controller = controller
         self._shade_id = data["shadeId"]
+        self._attr_icon = "mdi:white-balance-sunny"
         self._attr_unique_id = f"{controller.unique_id}_{self._shade_id}"
         self._attr_name = data["name"]
         self._attr_has_entity_name = False
-        self._available = True
         if "flags" in data:
-            self._value = bool((int(data["flags"]) & 0x01) == 0x01)
+            self._attr_is_on = bool((int(data["flags"]) & 0x01) == 0x01)
         else:
-            self._value = False
+            self._attr_is_on = False
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -61,8 +61,8 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
                     self._controller.data["event"] == EVT_SHADESTATE
                     and "flags" in self._controller.data
                 ):
-                    self._value = bool((int(self._controller.data["flags"]) & 0x01) == 0x01)
-                self.async_write_ha_state()
+                    self._attr_is_on = bool((int(self._controller.data["flags"]) & 0x01) == 0x01)
+                    self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
@@ -71,23 +71,3 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self.coordinator.api.sun_flag_off(self._shade_id)
-
-    @property
-    def should_poll(self) -> bool:
-        return False
-
-    @property
-    def available(self) -> bool:
-        return self._available
-
-    @property
-    def name(self) -> str:
-        return self._attr_name
-
-    @property
-    def is_on(self) -> bool:
-        return self._value
-
-    @property
-    def icon(self) -> str:
-        return "mdi:white-balance-sunny"
