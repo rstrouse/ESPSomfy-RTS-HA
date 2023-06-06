@@ -212,11 +212,15 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_opening(self) -> bool:
         """Return true if cover is opening."""
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            return self._direction == 1
         return self._direction == -1
 
     @property
     def is_closing(self) -> bool:
         """Return true if cover is closing."""
+        if self._attr_device_class == CoverDeviceClass.AWNING:
+            return self._direction == -1
         return self._direction == 1
 
     @property
