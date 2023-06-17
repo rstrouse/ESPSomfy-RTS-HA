@@ -99,6 +99,9 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._direction = 0
         self._available = True
         self._has_tilt = False
+        self._flipPosition = False
+        if "flipPosition" in data and data["flipPosition"] is True:
+            self._flipPosition = True
 
         self._attr_device_class = CoverDeviceClass.SHADE
         self._attr_supported_features = (
@@ -145,6 +148,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         if "shadeId" in self._controller.data:
             if self._controller.data["shadeId"] == self._shade_id:
                 if self._controller.data["event"] == EVT_SHADESTATE:
+                    if "flipPosition" in self._controller.data:
+                        self._flipPosition = bool(self._controller.data["flipPosition"])
                     if "position" in self._controller.data:
                         self._position = int(self._controller.data["position"])
                     if "direction" in self._controller.data:
@@ -198,6 +203,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def current_cover_position(self) -> int | None:
         """Return the current position of the shade."""
+        if self._flipPosition is True:
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                return 100 - self._position
+            return self._position
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._position
         return 100 - self._position
@@ -207,6 +216,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         """Return current position of cover tilt. 0 is closed, 100 is open."""
         if not self._has_tilt:
             return None
+        if self._flipPosition is True:
+            return self._tilt_postition
         return 100 - self._tilt_postition
 
     @property
@@ -226,6 +237,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_closed(self) -> bool:
         """Return true if cover is closed."""
+        if self._flipPosition is True:
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                return self._position == 100
+            return self._position == 0
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._position == 0
         return self._position == 100
@@ -233,15 +248,24 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_open(self) -> bool:
         """Return true if cover is closed."""
+        if self._flipPosition is True:
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                return self._position == 0
+            return self._position == 100
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._position == 100
         return self._position == 0
 
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
         """Set the tilt postion"""
-        await self._controller.api.position_tilt(
-            self._shade_id, 100 - int(kwargs[ATTR_TILT_POSITION])
-        )
+        if self._flipPosition is True:
+            await self._controller.api.position_tilt(
+                self._shade_id, int(kwargs[ATTR_TILT_POSITION])
+            )
+        else:
+            await self._controller.api.position_tilt(
+                self._shade_id, 100 - int(kwargs[ATTR_TILT_POSITION])
+            )
     async def async_open_cover_tilt(self, **kwargs: Any) -> None:
         """Open the tilt position"""
         await self._controller.api.tilt_open(self._shade_id)
@@ -252,14 +276,24 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Set the cover position."""
-        if self._attr_device_class == CoverDeviceClass.AWNING:
-            await self._controller.api.position_shade(
-                self._shade_id, int(kwargs[ATTR_POSITION])
-            )
+        if self._flipPosition is True:
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                await self._controller.api.position_shade(
+                    self._shade_id, 100 - int(kwargs[ATTR_POSITION])
+                )
+            else:
+                await self._controller.api.position_shade(
+                    self._shade_id, int(kwargs[ATTR_POSITION])
+                )
         else:
-            await self._controller.api.position_shade(
-                self._shade_id, 100 - int(kwargs[ATTR_POSITION])
-            )
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                await self._controller.api.position_shade(
+                    self._shade_id, int(kwargs[ATTR_POSITION])
+                )
+            else:
+                await self._controller.api.position_shade(
+                    self._shade_id, 100 - int(kwargs[ATTR_POSITION])
+                )
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
