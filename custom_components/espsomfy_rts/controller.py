@@ -13,7 +13,13 @@ import websocket
 
 
 from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
-from homeassistant.const import CONF_HOST, Platform
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_PIN,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import aiohttp_client, device_registry, entity_registry
@@ -22,10 +28,13 @@ from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    API_LOGIN,
     API_DISCOVERY,
     API_SHADECOMMAND,
+    API_GROUPCOMMAND,
     API_TILTCOMMAND,
     API_SHADES,
+    API_GROUPS,
     DOMAIN,
     EVT_CONNECTED,
     EVT_SHADEADDED,
@@ -114,12 +123,14 @@ class SocketListener(threading.Thread):
     def close(self) -> None:
         """Synonym for stop."""
         self.stop()
+
     def ws_begin(self) -> None:
         """Begin running the thread"""
         self.running_future = self.ws_app.run_forever(ping_interval=25, ping_timeout=20)
         # print("Fell out of run_runforever")
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.reconnect)
+
     def ws_onerror(self, wsapp, exception):
         """An error occurred on the socket connection"""
         # print(f"We have an error {exception}")
@@ -209,9 +220,41 @@ class ESPSomfyController(DataUpdateCoordinator):
         )
         await self.ws_listener.connect()
 
+    def ensure_group_configured(self, data):
+        """Ensures the group exists on Home Assistant"""
+        uuid = f"{self.unique_id}_group{data['groupId']}"
+        print(uuid)
+        devices = device_registry.async_get(self.hass)
+        devices = device_registry.async_get(self.hass)
+        device = devices.async_get_device({(DOMAIN, self.unique_id)})
+        entities = entity_registry.async_get(self.hass)
+        for entity in async_entries_for_config_entry(entities, self.config_entry_id):
+            if entity.unique_id == uuid:
+                return
+        dev_features = (
+            CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+        )
+
+        dev_class = CoverDeviceClass.SHADE
+        # Reload all the shades
+        # self.api.load_shades()
+        # I have no idea whether this reloads the devices or not.
+        entities.async_get_or_create(
+            domain=DOMAIN,
+            platform=Platform.COVER,
+            original_device_class=dev_class,
+            unique_id=uuid,
+            device_id=device.id,
+            original_name=data["name"],
+            suggested_object_id=f"{str(data['name']).lower().replace(' ', '_')}",
+            supported_features=dev_features,
+        )
+        print(f"Group not found {uuid} and one was added")
+
     def ensure_shade_configured(self, data):
         """Ensures the shade exists on Home Assistant"""
         uuid = f"{self.unique_id}_{data['shadeId']}"
+        print(uuid)
         devices = device_registry.async_get(self.hass)
         device = devices.async_get_device({(DOMAIN, self.unique_id)})
 
@@ -220,10 +263,12 @@ class ESPSomfyController(DataUpdateCoordinator):
         for entity in async_entries_for_config_entry(entities, self.config_entry_id):
             if entity.unique_id == uuid:
                 return
-        dev_features = (CoverEntityFeature.OPEN
+        dev_features = (
+            CoverEntityFeature.OPEN
             | CoverEntityFeature.CLOSE
             | CoverEntityFeature.STOP
-            | CoverEntityFeature.SET_POSITION)
+            | CoverEntityFeature.SET_POSITION
+        )
 
         dev_class = CoverDeviceClass.SHADE
         if "shadeType" in data:
@@ -233,17 +278,24 @@ class ESPSomfyController(DataUpdateCoordinator):
                     if "tiltType" in data:
                         match int(data["tiltType"]):
                             case 1 | 2:
-                                dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
+                                dev_features |= (
+                                    CoverEntityFeature.OPEN_TILT
+                                    | CoverEntityFeature.CLOSE_TILT
+                                    | CoverEntityFeature.SET_TILT_POSITION
+                                )
                     else:
                         if "hasTilt" in data and data["hasTilt"] is True:
-                            dev_features |= (CoverEntityFeature.OPEN_TILT | CoverEntityFeature.CLOSE_TILT | CoverEntityFeature.SET_TILT_POSITION)
+                            dev_features |= (
+                                CoverEntityFeature.OPEN_TILT
+                                | CoverEntityFeature.CLOSE_TILT
+                                | CoverEntityFeature.SET_TILT_POSITION
+                            )
                 case 2:
                     dev_class = CoverDeviceClass.CURTAIN
                 case 3:
                     dev_class = CoverDeviceClass.AWNING
                 case _:
                     dev_class = CoverDeviceClass.SHADE
-
 
         # Reload all the shades
         # self.api.load_shades()
@@ -299,12 +351,24 @@ class ESPSomfyAPI:
         self._api_url = f"http://{self._host}:8081"
         self._config: Any = {}
         self._session = async_get_clientsession(self.hass, verify_ssl=False)
+        self._authType = 0
+        self._needsKey = False
+        self._headers = dict({"apikey": ""})
+        self._canLogin = False
+        self._deviceName = data[CONF_HOST]
 
     @property
     def shades(self) -> Any:
-        """Return the state attributes."""
+        """Return the state shades."""
         if "shades" in self._config:
             return self._config["shades"]
+        return []
+
+    @property
+    def groups(self) -> Any:
+        """Return the state groups"""
+        if "groups" in self._config:
+            return self._config["groups"]
         return []
 
     @property
@@ -322,6 +386,15 @@ class ESPSomfyAPI:
         """Getter for the model number"""
         return self._config["model"]
 
+    @property
+    def apiKey(self) -> str:
+        """Gettter for the api key"""
+        return self._config["apiKey"]
+
+    @property
+    def deviceName(self) -> str:
+        return self._deviceName
+
     def get_sock_url(self):
         """Get the socket interface url"""
         return self._sock_url
@@ -337,13 +410,33 @@ class ESPSomfyAPI:
     async def discover(self) -> Any | None:
         """Discover the device on the network"""
         url = f"{self._api_url}{API_DISCOVERY}"
-        async with self._session.get(url) as resp:
+        async with self._session.get(url, headers=self._headers) as resp:
             if resp.status == 200:
                 data = await resp.json()
                 self._config["serverId"] = data["serverId"]
                 self._config["version"] = data["version"]
                 self._config["model"] = data["model"]
                 self._config["shades"] = data["shades"]
+                if "hostname" in data:
+                    self._deviceName = data["hostname"]
+                if "groups" in data:
+                    self._config["groups"] = data["groups"]
+                else:
+                    self._config["groups"] = []
+                if "authType" in data:
+                    self._config["authType"] = data["authType"]
+                    self._canLogin = True
+                else:
+                    self._config["authType"] = 0
+                    self._canLogin = False
+                if "permissions" in data:
+                    self._config["permissions"] = data["permissions"]
+                else:
+                    self._config["permissions"] = 1
+                self._needsKey = False
+                if self._config["authType"] > 0:
+                    if self._config["permissions"] != 1:
+                        self._needsKey = True
                 return await resp.json()
             _LOGGER.error(await resp.text())
             raise DiscoveryError(f"{url} - {await resp.text()}")
@@ -354,8 +447,15 @@ class ESPSomfyAPI:
             if resp.status == 200:
                 self._config["shades"] = await resp.json()
                 return self._config["shades"]
-            else:
-                _LOGGER.error(await resp.text())
+            _LOGGER.error(await resp.text())
+
+    async def load_groups(self) -> Any | None:
+        """Loads all the groups from the controller"""
+        async with self._session.get(f"{self._api_url}{API_GROUPS}") as resp:
+            if resp.status == 200:
+                self._config["groups"] = await resp.json()
+                return self._config["groups"]
+            _LOGGER.error(await resp.text())
 
     async def tilt_open(self, shade_id: int):
         """Send the command to open the tilt"""
@@ -390,6 +490,18 @@ class ESPSomfyAPI:
         """Send the command to stop the shade"""
         await self.shade_command({"shadeId": shade_id, "command": "my"})
 
+    async def open_group(self, group_id: int):
+        """Send the command to open the group"""
+        await self.group_command({"groupId": group_id, "command": "up"})
+
+    async def close_group(self, group_id: int):
+        """Send the command to close the group"""
+        await self.group_command({"groupId": group_id, "command": "down"})
+
+    async def stop_group(self, group_id: int):
+        """Send the command to stop the group"""
+        await self.group_command({"groupId": group_id, "command": "my"})
+
     async def position_shade(self, shade_id: int, position: int):
         """Send the command to position the shade"""
         await self.shade_command({"shadeId": shade_id, "target": position})
@@ -398,6 +510,42 @@ class ESPSomfyAPI:
         """Send commands to ESPSomfyRTS via PUT request"""
         async with self._session.put(
             f"{self._api_url}{API_SHADECOMMAND}", json=data
+        ) as resp:
+            if resp.status == 200:
+                pass
+            else:
+                _LOGGER.error(await resp.text())
+
+    async def login(self, data):
+        """Log in to EPSSomfy device"""
+        if self._canLogin:
+            async with self._session.put(
+                f"{self._api_url}{API_LOGIN}", json=data
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if "success" in data and data["success"]:
+                        if "apiKey" in data:
+                            self._config["apiKey"] = self._headers["apikey"] = data[
+                                "apiKey"
+                            ]
+                    else:
+                        print(data)
+                        if "type" in data:
+                            if data["type"] == 1:
+                                raise LoginError(CONF_PIN, "invalid_pin")
+                            elif data["type"] == 2:
+                                raise LoginError(CONF_USERNAME, "invalid_password")
+                        raise LoginError(CONF_HOST, "invalid_login")
+
+                else:
+                    _LOGGER.error(f"Error logging in: {await resp.text()}")
+                    raise LoginError(f"{self._api_url} - {await resp.text()}")
+
+    async def group_command(self, data):
+        """Send commands to ESPSomfyRTS via PUT request"""
+        async with self._session.put(
+            f"{self._api_url}{API_GROUPCOMMAND}", json=data
         ) as resp:
             if resp.status == 200:
                 pass
@@ -433,3 +581,7 @@ class InvalidHost(HomeAssistantError):
 
 class DiscoveryError(HomeAssistantError):
     """Error that occurred during discovery"""
+
+
+class LoginError(HomeAssistantError):
+    """Error that occurs when login fails"""

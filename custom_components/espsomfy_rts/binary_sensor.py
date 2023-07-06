@@ -41,7 +41,7 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
 
     def __init__(self, controller: ESPSomfyController, data):
         """Initialize a new SunSensor"""
-        super().__init__(controller=controller)
+        super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = data["shadeId"]
         self._attr_unique_id = f"sun_{controller.unique_id}_{self._shade_id}"
@@ -74,7 +74,7 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
 
     def __init__(self, controller: ESPSomfyController, data):
         """Initialize a new SunSensor"""
-        super().__init__(controller=controller)
+        super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = data["shadeId"]
         self._attr_unique_id = f"wind_{controller.unique_id}_{self._shade_id}"

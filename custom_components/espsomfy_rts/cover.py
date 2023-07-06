@@ -62,6 +62,13 @@ async def async_setup_entry(
 
         except KeyError:
             pass
+    for group in controller.api.groups:
+        try:
+            new_shades.append(ESPSomfyGroup(controller, group))
+
+        except KeyError:
+            pass
+
     if new_shades:
         async_add_entities(new_shades)
 
@@ -83,12 +90,101 @@ async def async_setup_entry(
     platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
 
 
+class ESPSomfyGroup(ESPSomfyEntity, CoverEntity):
+    """A grpi[] that is associated with a controller"""
+
+    def __init__(self, controller: ESPSomfyController, data):
+        super().__init__(controller=controller, data=data)
+        self._controller = controller
+        self._group_id = data["groupId"]
+        self._attr_unique_id = f"{controller.unique_id}_group{self._group_id}"
+        self._attr_name = data["name"]
+        self._direction = 0
+        self._available = True
+        self._attr_device_class = CoverDeviceClass.SHADE
+        self._attr_supported_features = (
+            CoverEntityFeature.OPEN
+            | CoverEntityFeature.CLOSE
+            | CoverEntityFeature.STOP )
+        self._attr_is_closed: bool = False
+        self._attr_is_open: bool = False
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if "groupId" in self._controller.data:
+            if self._controller.data["groupId"] == self._group_id:
+                self.async_write_ha_state()
+        elif (
+            self._controller.data["event"] == EVT_CONNECTED
+            and not self._controller.data["connected"]
+        ):
+            self._available = False
+            self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        """Indicates whether the group is available"""
+        return self._available
+
+    @property
+    def should_poll(self) -> bool:
+        """Indicates whether the group should poll for information"""
+        return False
+    @property
+    def icon(self) -> str:
+        if hasattr(self, "_attr_icon"):
+            return self._attr_icon
+        return "mdi:table-multiple"
+
+
+    @property
+    def current_cover_position(self) -> int | None:
+        """The current position"""
+        return 50
+
+    @property
+    def is_opening(self) -> bool:
+        """Return true if cover is opening."""
+        return False
+
+    @property
+    def is_closing(self) -> bool:
+        """Return true if the cover is closing"""
+        return False
+
+    @property
+    def is_closed(self) -> bool:
+        """Return true if cover is closed."""
+        return False
+
+    @property
+    def is_open(self) -> bool:
+        """Return true if cover is closed."""
+        return False
+
+    async def async_open_cover(self, **kwargs: Any) -> None:
+        """Open the cover."""
+        # print(f"Opening Cover id#{self._shade_id}")
+        # This is ridiculous in that we need to invert these
+        # if the type is an awning.
+        await self._controller.api.open_group(self._group_id)
+
+    async def async_close_cover(self, **kwargs: Any) -> None:
+        """Close cover."""
+        await self._controller.api.close_group(self._group_id)
+
+    async def async_stop_cover(self, **kwargs: Any) -> None:
+        """Hold cover."""
+        # print(f"Stopping Cover id#{self._shade_id}")
+        await self._controller.api.stop_group(self._group_id)
+
+
 
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     """A shade that is associated with a controller"""
 
     def __init__(self, controller: ESPSomfyController, data):
-        super().__init__(controller=controller)
+        super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = data["shadeId"]
         self._position = data["position"]
@@ -99,11 +195,12 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._direction = 0
         self._available = True
         self._has_tilt = False
-        self._flipPosition = False
+        self._flip_position = False
         if "flipPosition" in data and data["flipPosition"] is True:
-            self._flipPosition = True
+            self._flip_position = True
 
         self._attr_device_class = CoverDeviceClass.SHADE
+
         self._attr_supported_features = (
             CoverEntityFeature.OPEN
             | CoverEntityFeature.CLOSE
@@ -136,6 +233,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     self._attr_device_class = CoverDeviceClass.CURTAIN
                 case 3:
                     self._attr_device_class = CoverDeviceClass.AWNING
+                case 4:
+                    self._attr_device_class = CoverDeviceClass.SHUTTER
                 case _:
                     self._attr_device_class = CoverDeviceClass.SHADE
 
@@ -149,7 +248,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             if self._controller.data["shadeId"] == self._shade_id:
                 if self._controller.data["event"] == EVT_SHADESTATE:
                     if "flipPosition" in self._controller.data:
-                        self._flipPosition = bool(self._controller.data["flipPosition"])
+                        self._flip_position = bool(self._controller.data["flipPosition"])
                     if "position" in self._controller.data:
                         self._position = int(self._controller.data["position"])
                     if "direction" in self._controller.data:
@@ -203,7 +302,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def current_cover_position(self) -> int | None:
         """Return the current position of the shade."""
-        if self._flipPosition is True:
+        if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 return 100 - self._position
             return self._position
@@ -216,7 +315,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         """Return current position of cover tilt. 0 is closed, 100 is open."""
         if not self._has_tilt:
             return None
-        if self._flipPosition is True:
+        if self._flip_position is True:
             return self._tilt_postition
         return 100 - self._tilt_postition
 
@@ -237,7 +336,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_closed(self) -> bool:
         """Return true if cover is closed."""
-        if self._flipPosition is True:
+        if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 return self._position == 100
             return self._position == 0
@@ -248,7 +347,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_open(self) -> bool:
         """Return true if cover is closed."""
-        if self._flipPosition is True:
+        if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 return self._position == 0
             return self._position == 100
@@ -258,7 +357,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
         """Set the tilt postion"""
-        if self._flipPosition is True:
+        if self._flip_position is True:
             await self._controller.api.position_tilt(
                 self._shade_id, int(kwargs[ATTR_TILT_POSITION])
             )
@@ -276,7 +375,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Set the cover position."""
-        if self._flipPosition is True:
+        if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 await self._controller.api.position_shade(
                     self._shade_id, 100 - int(kwargs[ATTR_POSITION])

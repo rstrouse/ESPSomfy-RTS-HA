@@ -11,9 +11,10 @@ from .controller import ESPSomfyController
 class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
     """Base entitly for the ESPSomfy controller."""
 
-    def __init__(self, *, controller: ESPSomfyController) -> None:
+    def __init__(self, *, data: any, controller: ESPSomfyController) -> None:
         """Initialize the entity."""
         super().__init__(controller)
+
         self.controller = controller
 
     @property

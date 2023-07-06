@@ -17,6 +17,13 @@
         "data": {
           "host": "IP address for the ESPSomfy RTS device"
         }
+      },
+      "init": {
+        "title": "Configure ESPSomfy RTS",
+        "description": "Enter some data",
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]"
+        }
       }
     },
     "error": {
@@ -28,6 +35,16 @@
     "abort": {
       "single_instance_allowed": "[%key:common::config_flow::abort::single_instance_allowed%]",
       "no_devices_found": "[%key:common::config_flow::abort::no_devices_found%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "[%key:common::config_flow::data::location%]",
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]"
+        }
+      }
     }
   }
 }

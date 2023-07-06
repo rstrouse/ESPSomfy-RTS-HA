@@ -2,7 +2,7 @@
   "domain": "espsomfy_rts",
   "name": "ESPSomfy RTS",
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/espsomfy_rts",
+  "documentation": "https://github.com/rstrouse/ESPSomfy-RTS/wiki/Configuring-the-Software",
   "requirements": ["websocket-client==1.4.2"],
   "ssdp": [
     {
@@ -20,5 +20,5 @@
   "dependencies": [],
   "codeowners": ["@rstrouse"],
   "iot_class": "local_push",
-  "version": "1.1.1"
+  "version": "2.0.0"
 }

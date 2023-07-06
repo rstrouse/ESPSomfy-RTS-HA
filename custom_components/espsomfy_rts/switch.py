@@ -41,11 +41,11 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
 
     def __init__(self, controller: ESPSomfyController, data):
         """Initialize a new SunSwitch"""
-        super().__init__(controller=controller)
+        super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = data["shadeId"]
         self._attr_icon = "mdi:white-balance-sunny"
-        self._attr_unique_id = f"{controller.unique_id}_{self._shade_id}"
+        self._attr_unique_id = f"sunswitch_{controller.unique_id}_{self._shade_id}"
         self._attr_name = data["name"]
         self._attr_has_entity_name = False
         if "flags" in data:
