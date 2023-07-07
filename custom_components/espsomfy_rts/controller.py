@@ -40,6 +40,7 @@ from .const import (
     EVT_SHADEADDED,
     EVT_SHADEREMOVED,
     EVT_SHADESTATE,
+    EVT_SHADECOMMAND,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -216,7 +217,7 @@ class ESPSomfyController(DataUpdateCoordinator):
             self.ws_onerror,
         )
         self.ws_listener.set_filter(
-            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE]
+            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND]
         )
         await self.ws_listener.connect()
 

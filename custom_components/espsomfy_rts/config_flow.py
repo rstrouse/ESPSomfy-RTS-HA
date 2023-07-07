@@ -135,7 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context.update(
             {
                 "title_placeholders": {
-                    "name": f"{discovery_info.hostname}: {self.server_id}",
+                    "name": f"{discovery_info.hostname}",
                     "server_id": self.server_id,
                     "model": discovery_info.properties.get("model", ""),
                 },
@@ -170,8 +170,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     }
                 )
                 return self.async_create_entry(
-                    title=f"ESPSomfy RTS {api.server_id}",
-                    description=api.deviceName,
+                    title=api.deviceName,
                     data=user_input,
                 )
             except InvalidHost:
@@ -183,9 +182,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except LoginError as ex:
                 errors[ex.args[0]] = ex.args[1]
 
-            return self.async_create_entry(
-                title=f"ESP Somfy RTS {server_id}", data=data
-            )
         return self.async_show_form(
             step_id="zeroconf_confirm",
             data_schema=_get_data_schema(
@@ -242,8 +238,7 @@ class ESPSomfyOptionsFlowHandler(config_entries.OptionsFlow):
                     self._config_entry, title=api.deviceName, data=user_input
                 )
                 return self.async_create_entry(
-                    title=f"ESPSomfy RTS {api.server_id}",
-                    description=api.deviceName,
+                    title=api.deviceName,
                     data=user_input,
                 )
             except InvalidHost:

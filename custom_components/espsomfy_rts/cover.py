@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Final
 import voluptuous as vol
+import datetime
+
 
 from homeassistant.components.cover import (
     ATTR_POSITION,
@@ -16,9 +18,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 
-from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE
+from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND
 from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
 from .switch import ESPSomfySunSwitch
@@ -93,7 +96,7 @@ async def async_setup_entry(
 class ESPSomfyGroup(ESPSomfyEntity, CoverEntity):
     """A grpi[] that is associated with a controller"""
 
-    def __init__(self, controller: ESPSomfyController, data):
+    def __init__(self, controller: ESPSomfyController, data) -> None:
         super().__init__(controller=controller, data=data)
         self._controller = controller
         self._group_id = data["groupId"]
@@ -177,13 +180,10 @@ class ESPSomfyGroup(ESPSomfyEntity, CoverEntity):
         """Hold cover."""
         # print(f"Stopping Cover id#{self._shade_id}")
         await self._controller.api.stop_group(self._group_id)
-
-
-
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     """A shade that is associated with a controller"""
 
-    def __init__(self, controller: ESPSomfyController, data):
+    def __init__(self, controller: ESPSomfyController, data) -> None:
         super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = data["shadeId"]
@@ -196,6 +196,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._available = True
         self._has_tilt = False
         self._flip_position = False
+        self._state_attributes: dict[str, Any] = dict([])
+
         if "flipPosition" in data and data["flipPosition"] is True:
             self._flip_position = True
 
@@ -247,6 +249,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         if "shadeId" in self._controller.data:
             if self._controller.data["shadeId"] == self._shade_id:
                 if self._controller.data["event"] == EVT_SHADESTATE:
+                    if "remoteAddress" in self._controller.data:
+                        self._state_attributes["remote_address"] = self._controller.data["remoteAddress"]
                     if "flipPosition" in self._controller.data:
                         self._flip_position = bool(self._controller.data["flipPosition"])
                     if "position" in self._controller.data:
@@ -266,9 +270,29 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                             self._tilt_direction = int(self._controller.data["tiltDirection"])
                         if "tiltPosition" in self._controller.data:
                             self._tilt_postition = int(self._controller.data["tiltPosition"])
+                        if "tiltTarget" in self._controller.data:
+                            self._state_attributes["tilt_target"] = int(self._controller.data["tiltTarget"])
+                        if "myTiltPos" in self._controller.data:
+                            self._state_attributes["my_tilt_pos"] = int(self._controller.data["myTiltPos"])
+                    if "target" in self._controller.data:
+                        self._state_attributes["position_target"] = int(self._controller.data["target"])
+                    if "mypos" in self._controller.data:
+                        self._state_attributes["my_pos"] = int(self._controller.data["mypos"])
+
                     self._available = True
                 elif self._controller.data["event"] == EVT_SHADEREMOVED:
                     self._available = False
+                elif self._controller.data["event"] == EVT_SHADECOMMAND:
+                    if "remoteAddress" in self._controller.data:
+                        self._state_attributes["remote_address"] = self._controller.data["remoteAddress"]
+                    if "cmd" in self._controller.data:
+                        self._state_attributes["last_cmd"] = self._controller.data["cmd"]
+                    if "source" in self._controller.data:
+                        self._state_attributes["cmd_source"] = self._controller.data["source"]
+                    if "sourceAddress" in self._controller.data:
+                        self._state_attributes["cmd_address"] = self._controller.data["sourceAddress"]
+                    self._state_attributes["cmd_fired"] = dt_util.as_timestamp(dt_util.utcnow())
+
                 self.async_write_ha_state()
         elif (
             self._controller.data["event"] == EVT_CONNECTED
@@ -354,6 +378,11 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._position == 100
         return self._position == 0
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Return entity specific state attributes."""
+        return self._state_attributes
 
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
         """Set the tilt postion"""
