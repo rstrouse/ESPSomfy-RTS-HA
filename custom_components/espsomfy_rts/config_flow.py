@@ -53,8 +53,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
 # The ConfigFlow is only accessed when first setting up the integration.  This simply
 # collects the initial data from the user to determine whether the integration can
-# be installed.  Since I cannot seem to make the zero conf stuff start, I am simply
-# allowing the user to enter the IP address at this point.
+# be installed.
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Configuration flow for ESPSomfyController"""
 
@@ -136,6 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context.update(
             {
                 "title_placeholders": {
+                    "name": f"Device: {self.server_id}",
                     "server_id": self.server_id,
                     "model": discovery_info.properties.get("model", ""),
                 },
@@ -239,7 +239,7 @@ class ESPSomfyOptionsFlowHandler(config_entries.OptionsFlow):
                 )
                 # Update config entry with data from user input
                 self.hass.config_entries.async_update_entry(
-                    self._config_entry, data=user_input
+                    self._config_entry, title=api.deviceName, data=user_input
                 )
                 return self.async_create_entry(
                     title=f"ESPSomfy RTS {api.server_id}",
