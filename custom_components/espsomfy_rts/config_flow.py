@@ -135,7 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context.update(
             {
                 "title_placeholders": {
-                    "name": f"Device: {self.server_id}",
+                    "name": f"{discovery_info.hostname}: {self.server_id}",
                     "server_id": self.server_id,
                     "model": discovery_info.properties.get("model", ""),
                 },
@@ -170,7 +170,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     }
                 )
                 return self.async_create_entry(
-                    title=f"ESP Somfy RTS {api.server_id}",
+                    title=f"ESPSomfy RTS {api.server_id}",
                     description=api.deviceName,
                     data=user_input,
                 )
