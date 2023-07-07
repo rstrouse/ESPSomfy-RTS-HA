@@ -129,14 +129,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._async_abort_entries_match({CONF_HOST: discovery_info.host})
 
         # Check if already configured
-        server_id = discovery_info.properties.get("serverId", "")
-        await self.async_set_unique_id(f"espsomfy_{server_id}")
+        self.server_id = discovery_info.properties.get("serverId", "")
+        await self.async_set_unique_id(f"espsomfy_{self.server_id}")
         self.host = discovery_info.host
         self._abort_if_unique_id_configured()
         self.context.update(
             {
                 "title_placeholders": {
-                    "server_id": server_id,
+                    "server_id": self.server_id,
                     "model": discovery_info.properties.get("model", ""),
                 },
             }
@@ -149,7 +149,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initiated by zeroconf."""
         errors = {}
         data = {
-            "server_id": server_id,
+            "server_id": self.server_id,
             CONF_HOST: self.zero_conf.host,
             "model": self.zero_conf.properties.get("model", ""),
         }
