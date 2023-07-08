@@ -292,7 +292,17 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     if "sourceAddress" in self._controller.data:
                         self._state_attributes["cmd_address"] = self._controller.data["sourceAddress"]
                     self._state_attributes["cmd_fired"] = dt_util.as_timestamp(dt_util.utcnow())
-
+                    bus_data = {
+                        "entity_id": self.entity_id,
+                        "event_key": EVT_SHADECOMMAND,
+                        "name": self.name,
+                        "source": self._state_attributes.get("cmd_source", ""),
+                        "remote_address": self._state_attributes.get("remote_address", 0),
+                        "source_address": self._state_attributes.get("cmd_address", 0),
+                        "command": self._state_attributes.get("last_cmd", ""),
+                        "timestamp": self._state_attributes.get("cmd_fired")
+                    }
+                    self.hass.bus.async_fire("espsomfy-rts_event", bus_data)
                 self.async_write_ha_state()
         elif (
             self._controller.data["event"] == EVT_CONNECTED
