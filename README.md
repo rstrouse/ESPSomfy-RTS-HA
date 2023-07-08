@@ -30,16 +30,16 @@ The data payload for the event includes:
 * `remote_address`: The address defined for the ESPSomfy RTS motor
 * `source_address`: The address of the source device.  If this is a remote it will be the address of the remote channel.  If it is part of a group request it will be the address of the group.
 * `command`: This will be one of the following commands
-  * Up - An up command was issued
-  * Down - A down command was issued
-  * My - A my/stop command was issued
-  * StepUp - A step up command was issued
-  * StepDown - A step down command was issued
-  * Prog - The prog button was pressed
-  * My+Up - A combination of the my and up button was pressed at the same time
-  * My+Down - A combination of the my and down button was pressed at the same time
-  * Up+Down - The up and down buttons were pressed at the same time
-  * My+Up+Down - The my, up, and down buttons were all pressed at the same time
+  * `Up` - An up command was issued
+  * `Down` - A down command was issued
+  * `My` - A my/stop command was issued
+  * `StepUp` - A step up command was issued
+  * `StepDown` - A step down command was issued
+  * `Prog` - The prog button was pressed
+  * `My+Up` - A combination of the my and up button was pressed at the same time
+  * `My+Down` - A combination of the my and down button was pressed at the same time
+  * `Up+Down` - The up and down buttons were pressed at the same time
+  * `My+Up+Down` - The my, up, and down buttons were all pressed at the same time
   
 
 ![image](https://github.com/rstrouse/ESPSomfy-RTS-HA/assets/47839015/2fbf4ad8-86b4-4d4e-ac8e-ce04ba4adeeb)
