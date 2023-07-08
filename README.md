@@ -19,6 +19,29 @@ Once configured you will be able to open, close, and set the position of your sh
 # Events
 The integration emits events on the Home Assistant event bus for all commands whether they have originated in Home Assistant, a remote control, or the ESPSomfy RTS web interface.  These events can be captured using the `espsomfy-rts_event` type.
 
+The data payload for the event includes:
+* `entity_id`: The entitiy id in home assistant for the target cover
+* `event_key`: The event that triggered this event (for now this is always shadeCommand)
+* `name`: The name assigned to the entity
+* `source`: The originator of the command.  This will be one of the following
+  * `remote`: The user pressed a button on a remote
+  * `internal`: The command originated from ESPSomfy RTS
+  * `group`: The command was part of a group command
+* `remote_address`: The address defined for the ESPSomfy RTS motor
+* `source_address`: The address of the source device.  If this is a remote it will be the address of the remote channel.  If it is part of a group request it will be the address of the group.
+* `command`: This will be one of the following commands
+  * Up - An up command was issued
+  * Down - A down command was issued
+  * My - A my/stop command was issued
+  * StepUp - A step up command was issued
+  * StepDown - A step down command was issued
+  * Prog - The prog button was pressed
+  * My+Up - A combination of the my and up button was pressed at the same time
+  * My+Down - A combination of the my and down button was pressed at the same time
+  * Up+Down - The up and down buttons were pressed at the same time
+  * My+Up+Down - The my, up, and down buttons were all pressed at the same time
+  
+
 ![image](https://github.com/rstrouse/ESPSomfy-RTS-HA/assets/47839015/2fbf4ad8-86b4-4d4e-ac8e-ce04ba4adeeb)
 
 
