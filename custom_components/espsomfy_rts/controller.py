@@ -224,8 +224,6 @@ class ESPSomfyController(DataUpdateCoordinator):
     def ensure_group_configured(self, data):
         """Ensures the group exists on Home Assistant"""
         uuid = f"{self.unique_id}_group{data['groupId']}"
-        print(uuid)
-        devices = device_registry.async_get(self.hass)
         devices = device_registry.async_get(self.hass)
         device = devices.async_get_device({(DOMAIN, self.unique_id)})
         entities = entity_registry.async_get(self.hass)
