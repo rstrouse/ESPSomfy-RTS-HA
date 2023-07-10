@@ -200,17 +200,6 @@ class ESPSomfyGroup(ESPSomfyEntity, GroupEntity, CoverEntity):
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Set covers position."""
-        data = {
-            ATTR_ENTITY_ID: self._covers[KEY_POSITION],
-            ATTR_POSITION: kwargs[ATTR_POSITION],
-        }
-        await self.hass.services.async_call(
-            DOMAIN,
-            SERVICE_SET_COVER_POSITION,
-            data,
-            blocking=True,
-            context=self._context,
-        )
 
     async def async_open_cover_tilt(self, **kwargs: Any) -> None:
         """Tilt covers open."""

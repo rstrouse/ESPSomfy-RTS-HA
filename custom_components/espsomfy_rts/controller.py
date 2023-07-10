@@ -253,7 +253,6 @@ class ESPSomfyController(DataUpdateCoordinator):
     def ensure_shade_configured(self, data):
         """Ensures the shade exists on Home Assistant"""
         uuid = f"{self.unique_id}_{data['shadeId']}"
-        print(uuid)
         devices = device_registry.async_get(self.hass)
         device = devices.async_get_device({(DOMAIN, self.unique_id)})
 

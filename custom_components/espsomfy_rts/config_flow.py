@@ -41,7 +41,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     """Validate the user input allows us to connect.
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    print("validate_input")
     session = aiohttp_client.async_get_clientsession(hass)
     async with session.get(f'http://{data["host"]}/discovery') as resp:
         if resp.status == 200:
@@ -84,10 +83,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the flow initialized by the user."""
 
         errors = {}
-        print("async_step_user")
         if user_input is not None:
             try:
-                print(user_input)
                 if not is_host_valid(user_input.get(CONF_HOST, "")):
                     raise InvalidHost()
                 else:
