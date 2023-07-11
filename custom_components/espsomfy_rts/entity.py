@@ -13,8 +13,7 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
 
     def __init__(self, *, data: any, controller: ESPSomfyController) -> None:
         """Initialize the entity."""
-        super().__init__(controller)
-
+        super().__init__(coordinator=controller)
         self.controller = controller
 
     @property

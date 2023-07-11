@@ -16,6 +16,7 @@ from homeassistant.components.cover import (
     CoverEntity,
     CoverEntityFeature,
 )
+from homeassistant.components.group.cover import CoverGroup
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.config_validation import make_entity_service_schema
@@ -38,6 +39,11 @@ SVC_SET_SHADE_POS = "set_shade_position"
 SVC_TILT_OPEN = "tilt_open"
 SVC_TILT_CLOSE = "tilt_close"
 SVC_SET_TILT_POS = "set_tilt_position"
+
+KEY_OPEN_CLOSE = "open_close"
+KEY_STOP = "stop"
+KEY_POSITION = "position"
+
 
 POSITION_SERVICE_SCHEMA: Final = make_entity_service_schema(
     {vol.Required(ATTR_POSITION): vol.All(
@@ -67,19 +73,22 @@ async def async_setup_entry(
             if "shadeType" in shade:
                 match(shade["shadeType"]):
                     case 3:
-                        new_shades.append(ESPSomfySunSwitch(controller, shade))
+                        new_shades.append(ESPSomfySunSwitch(controller=controller, data=shade))
 
         except KeyError:
             pass
-    for group in controller.api.groups:
-        try:
-            new_shades.append(ESPSomfyGroup(controller, group))
-
-        except KeyError:
-            pass
-
     if new_shades:
         async_add_entities(new_shades)
+    new_groups = []
+    for group in controller.api.groups:
+        try:
+            new_groups.append(ESPSomfyGroup(hass=hass, controller=controller, data=group))
+
+        except KeyError:
+            pass
+    if new_groups:
+        async_add_entities(new_groups)
+
 
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
@@ -99,31 +108,29 @@ async def async_setup_entry(
     platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
 
 
-class ESPSomfyGroup(ESPSomfyEntity, GroupEntity, CoverEntity):
+class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
     """A grpi[] that is associated with a controller"""
 
-    def __init__(self, controller: ESPSomfyController, data) -> None:
-        super().__init__(controller=controller, data=data)
+    def __init__(self, hass: HomeAssistant, controller: ESPSomfyController, data) -> None:
+        ESPSomfyEntity.__init__(self=self, controller=controller, data=data)
         self._controller = controller
         self._group_id = data["groupId"]
-        self._attr_unique_id = f"{controller.unique_id}_group{self._group_id}"
-        self._attr_name = data["name"]
-        self._direction = 0
-        self._available = True
         self._attr_device_class = CoverDeviceClass.SHADE
         self._linked_shade_ids = []
-
-
-        #self._state_attributes: dict[str, Any] = dict([])
-        self._attr_supported_features = (
-            CoverEntityFeature.OPEN
-            | CoverEntityFeature.CLOSE
-            | CoverEntityFeature.STOP )
-        self._attr_is_closed: bool = False
-        self._attr_is_open: bool = False
         if "linkedShades" in data:
-            for shade in data["linkedShades"]:
-                self._linked_shade_ids.append(int(shade["shadeId"]))
+            for linked_shade in data["linkedShades"]:
+                self._linked_shade_ids.append(int(linked_shade["shadeId"]))
+
+        devices = device_registry.async_get(hass)
+        device = devices.async_get_device({(DOMAIN, self._controller.unique_id)})
+        entities = entity_registry.async_get(hass)
+        uuid = f"{controller.unique_id}_group{self._group_id}"
+        shade_ids:list[str] = []
+        for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
+            for cover_id in self._linked_shade_ids:
+                if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
+                    shade_ids.append(entity.entity_id)
+        CoverGroup.__init__(self=self, unique_id=uuid, name=data["name"], entities=shade_ids)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -138,13 +145,7 @@ class ESPSomfyGroup(ESPSomfyEntity, GroupEntity, CoverEntity):
             self._controller.data["event"] == EVT_CONNECTED
             and not self._controller.data["connected"]
         ):
-            self._available = False
             self.async_write_ha_state()
-
-    @property
-    def available(self) -> bool:
-        """Indicates whether the group is available"""
-        return self._available
 
     @property
     def should_poll(self) -> bool:
@@ -156,37 +157,8 @@ class ESPSomfyGroup(ESPSomfyEntity, GroupEntity, CoverEntity):
             return self._attr_icon
         return "mdi:table-multiple"
 
-
-    @property
-    def current_cover_position(self) -> int | None:
-        """The current position"""
-        return 50
-
-    @property
-    def is_opening(self) -> bool:
-        """Return true if cover is opening."""
-        return False
-
-    @property
-    def is_closing(self) -> bool:
-        """Return true if the cover is closing"""
-        return False
-
-    @property
-    def is_closed(self) -> bool:
-        """Return true if cover is closed."""
-        return False
-
-    @property
-    def is_open(self) -> bool:
-        """Return true if cover is closed."""
-        return False
-
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
-        # print(f"Opening Cover id#{self._shade_id}")
-        # This is ridiculous in that we need to invert these
-        # if the type is an awning.
         await self._controller.api.open_group(self._group_id)
 
     async def async_close_cover(self, **kwargs: Any) -> None:
@@ -197,38 +169,6 @@ class ESPSomfyGroup(ESPSomfyEntity, GroupEntity, CoverEntity):
         """Hold cover."""
         # print(f"Stopping Cover id#{self._shade_id}")
         await self._controller.api.stop_group(self._group_id)
-
-    async def async_set_cover_position(self, **kwargs: Any) -> None:
-        """Set covers position."""
-
-    async def async_open_cover_tilt(self, **kwargs: Any) -> None:
-        """Tilt covers open."""
-
-    async def async_close_cover_tilt(self, **kwargs: Any) -> None:
-        """Tilt covers closed."""
-
-    async def async_stop_cover_tilt(self, **kwargs: Any) -> None:
-        """Stop cover tilt."""
-
-    async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
-        """Set tilt position."""
-
-    @property
-    def extra_state_attributes(self) -> Mapping[str, Any] | None:
-        """Return entity specific state attributes."""
-        group_entities: list[str] = []
-        devices = device_registry.async_get(self.hass)
-        device = devices.async_get_device({(DOMAIN, self._controller.unique_id)})
-        entities = entity_registry.async_get(self.hass)
-        for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
-            for cover_id in self._linked_shade_ids:
-                if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
-                    group_entities.append(entity.entity_id)
-        return  {ATTR_ENTITY_ID: group_entities}
-
-    def async_update_group_state(self) -> None:
-        """Update the group state"""
-
 
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     """A shade that is associated with a controller"""
