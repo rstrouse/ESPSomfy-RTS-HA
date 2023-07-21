@@ -40,6 +40,7 @@ from .const import (
     EVT_SHADEADDED,
     EVT_SHADEREMOVED,
     EVT_SHADESTATE,
+    EVT_GROUPSTATE,
     EVT_SHADECOMMAND,
 )
 
@@ -217,7 +218,7 @@ class ESPSomfyController(DataUpdateCoordinator):
             self.ws_onerror,
         )
         self.ws_listener.set_filter(
-            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND]
+            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE]
         )
         await self.ws_listener.connect()
 
@@ -475,6 +476,14 @@ class ESPSomfyAPI:
     async def sun_flag_on(self, shade_id: int):
         """Send the command to turn off the sun flag"""
         await self.shade_command({"shadeId": shade_id, "command": "sunflag"})
+
+    async def sun_flag_group_off(self, group_id: int):
+        """Send the command to turn off the sun flag"""
+        await self.group_command({"groupId": group_id, "command": "flag"})
+
+    async def sun_flag_group_on(self, group_id: int):
+        """Send the command to turn off the sun flag"""
+        await self.group_command({"groupId": group_id, "command": "sunflag"})
 
     async def open_shade(self, shade_id: int):
         """Send the command to open the shade"""

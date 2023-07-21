@@ -30,7 +30,6 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND
 from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
-from .switch import ESPSomfySunSwitch
 
 SVC_OPEN_SHADE = "open_shade"
 SVC_CLOSE_SHADE = "close_shade"
@@ -70,10 +69,6 @@ async def async_setup_entry(
     for shade in controller.api.shades:
         try:
             new_shades.append(ESPSomfyShade(controller, shade))
-            if "shadeType" in shade:
-                match(shade["shadeType"]):
-                    case 3:
-                        new_shades.append(ESPSomfySunSwitch(controller=controller, data=shade))
 
         except KeyError:
             pass
