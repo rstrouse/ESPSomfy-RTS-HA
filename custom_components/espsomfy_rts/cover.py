@@ -3,11 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Final
 import voluptuous as vol
-import datetime
+from collections.abc import Mapping
 
-from homeassistant.components.group import(
-    GroupEntity
-)
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.components.cover import (
     ATTR_POSITION,

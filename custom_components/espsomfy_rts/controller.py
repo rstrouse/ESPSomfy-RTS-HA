@@ -495,6 +495,7 @@ class ESPSomfyAPI:
 
     async def stop_shade(self, shade_id: int):
         """Send the command to stop the shade"""
+        #print(f"STOP ShadeId:{shade_id}")
         await self.shade_command({"shadeId": shade_id, "command": "my"})
 
     async def open_group(self, group_id: int):
@@ -507,10 +508,12 @@ class ESPSomfyAPI:
 
     async def stop_group(self, group_id: int):
         """Send the command to stop the group"""
+        #print(f"STOP GroupId:{group_id}")
         await self.group_command({"groupId": group_id, "command": "my"})
 
     async def position_shade(self, shade_id: int, position: int):
         """Send the command to position the shade"""
+        #print(f"POS ShadeId:{shade_id} Target:{position}")
         await self.shade_command({"shadeId": shade_id, "target": position})
 
     async def shade_command(self, data):
