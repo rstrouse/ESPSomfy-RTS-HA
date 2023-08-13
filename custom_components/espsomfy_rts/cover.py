@@ -213,6 +213,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     self._has_tilt = True
                     self._attr_supported_features = (
                         CoverEntityFeature.OPEN_TILT
+                        | CoverEntityFeature.STOP_TILT
                         | CoverEntityFeature.CLOSE_TILT
                         | CoverEntityFeature.SET_TILT_POSITION
                     )
