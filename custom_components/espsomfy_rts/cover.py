@@ -403,6 +403,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         """Close the tilt position"""
         await self._controller.api.tilt_close(self._shade_id)
 
+    async def async_stop_cover_tilt(self, **kwargs: Any) -> None:
+        """Stop tilting a tilt only shade"""
+        await self._controller.api.stop_shade(self._shade_id)
+
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Set the cover position."""
         if self._flip_position is True:
