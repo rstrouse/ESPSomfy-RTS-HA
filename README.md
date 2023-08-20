@@ -9,7 +9,7 @@ This integration requires hardware that uses an ESP32 microcontroller and a CC11
 The easiest way to get going is to install this integration in Home Assistant using HACS as a [Custom Repository](https://hacs.xyz/docs/faq/custom_repositories/).  As an alternative you may install it manually by copying the contents of the `custom_components` folder to the `config/custom_components` directory of your Home Assistant installation.
 
 ## Setup
-Setup is a snap and ESPSomfy-RTS will automatically detect any radio devices on your local network for inclusion in home assistant.
+Once installed, ESPSomfy-RTS-HA will automatically detect any radio devices on your local network. Just browse to Home Assistant's Settings &rarr; Devices & Services and your ESPSomfy-RTS device will show up as available to configure.
 
 # Functionality
 Once configured you will be able to open, close, and set the position of your shades using home assistant.  The integration will monitor the position of the shade regardless of how it was opened or closed.  This includes opening or closing it using a Telis remote.  Shades can be added to your dashboards and automated with Home Assistant services through automations.
