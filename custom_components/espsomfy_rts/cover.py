@@ -228,6 +228,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     self._attr_device_class = CoverDeviceClass.AWNING
                 case 4:
                     self._attr_device_class = CoverDeviceClass.SHUTTER
+                case 5:
+                    self._attr_device_class = CoverDeviceClass.GARAGE
+                case 6:
+                    self._attr_device_class = CoverDeviceClass.GARAGE
                 case _:
                     self._attr_device_class = CoverDeviceClass.SHADE
 
