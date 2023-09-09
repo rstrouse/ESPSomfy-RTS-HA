@@ -222,7 +222,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             match int(data["shadeType"]):
                 case 1:
                     self._attr_device_class = CoverDeviceClass.BLIND
-                case 2:
+                case 2 | 7 | 8:
                     self._attr_device_class = CoverDeviceClass.CURTAIN
                 case 3:
                     self._attr_device_class = CoverDeviceClass.AWNING
