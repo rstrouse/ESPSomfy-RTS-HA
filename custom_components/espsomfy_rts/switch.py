@@ -25,7 +25,9 @@ async def async_setup_entry(
     new_entities = []
     for shade in controller.api.shades:
         try:
-            if "sunSensor" in shade:
+            if "shadeType" in shade and int(shade["shadeType"]) == 9:
+                new_entities.append(ESPSomfyBinarySwitch(controller=controller, data=shade))
+            elif "sunSensor" in shade:
                 if shade["sunSensor"] is True:
                     new_entities.append(ESPSomfySunSwitch(controller=controller, data=shade))
             elif "shadeType" in shade:
@@ -113,3 +115,36 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
             return
         await self.coordinator.api.sun_flag_group_off(self._group_id)
 
+class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
+    """A binary switch for toggling a dry contact"""
+
+    def __init__(self, controller: ESPSomfyController, data) -> None:
+        """Initialize a new BinarySwitch"""
+        super().__init__(controller=controller, data=data)
+        self._controller = controller
+        self._shade_id = None
+        self._group_id = None
+        self._attr_name = data["name"]
+        self._attr_has_entity_name = False
+        self._binaryswitch_type = data["shadeType"]
+        self._shade_id = data["shadeId"]
+        self._attr_unique_id = f"binaryswitch_{controller.unique_id}_{self._shade_id}"
+        if "position" in data:
+            self._attr_is_on = bool((int(data["position"])) > 0)
+        else:
+            self._attr_is_on = False
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if("position" in self._controller.data and self._controller.data["shadeId"] == self._shade_id):
+            self._attr_is_on = bool((int(self._controller.data["position"])) > 0)
+        self.async_write_ha_state()
+
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on."""
+        await self.coordinator.api.toggle_shade(self._shade_id)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off."""
+        await self.coordinator.api.toggle_shade(self._shade_id)

@@ -4,7 +4,7 @@ from __future__ import annotations
 from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER
+from .const import DOMAIN, MANUFACTURER, VERSION
 from .controller import ESPSomfyController
 
 
@@ -27,6 +27,7 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
             identifiers={(DOMAIN, self.controller.unique_id)},
             name="ESPSomfy RTS",
             manufacturer=MANUFACTURER,
-            model=self.controller.model,
+            model=f"ESPSomfy RTS Integration {VERSION}",
             sw_version=self.controller.version,
+            hw_version=None
         )

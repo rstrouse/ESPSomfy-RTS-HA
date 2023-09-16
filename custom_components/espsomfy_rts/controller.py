@@ -492,7 +492,9 @@ class ESPSomfyAPI:
     async def close_shade(self, shade_id: int):
         """Send the command to close the shade"""
         await self.shade_command({"shadeId": shade_id, "command": "down"})
-
+    async def toggle_shade(self, shade_id: int):
+        """Sent the command to toggle"""
+        await self.shade_command({"shadeId": shade_id, "command": "toggle"})
     async def stop_shade(self, shade_id: int):
         """Send the command to stop the shade"""
         #print(f"STOP ShadeId:{shade_id}")
