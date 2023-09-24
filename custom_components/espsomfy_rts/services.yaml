@@ -73,6 +73,63 @@ set_tilt_position:
           min: 0
           max: 100
           unit_of_measurement: "%"
-
+set_current_position:
+  name: Sets the current position without moving the motor
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+  fields:
+    position:
+      name: Position
+      description: The position to be set
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+set_current_tilt_position:
+  name: Sets the current tilt position without moving the motor
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+  fields:
+    tilt_position:
+      name: Position
+      description: The tilt position to be set
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+set_sunny:
+  name: Sends the sensor commands to the motor indicating whether it is sunny or not
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+  fields:
+    sunny:
+      name: Is Sunny
+      description: A boolean indicating whether it is sunny or not
+      required: true
+      selector:
+        boolean:
+set_windy:
+  name: Sends the sensor commands to the motor indicating whether it is windy or not
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+  fields:
+    windy:
+      name: Is Windy
+      description: A boolean indicating whether it is windy or not
+      required: true
+      selector:
+        boolean:
 
 

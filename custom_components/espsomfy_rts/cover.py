@@ -35,11 +35,16 @@ SVC_SET_SHADE_POS = "set_shade_position"
 SVC_TILT_OPEN = "tilt_open"
 SVC_TILT_CLOSE = "tilt_close"
 SVC_SET_TILT_POS = "set_tilt_position"
+SVC_SET_CURRENT_POS = "set_current_position"
+SVC_SET_CURRENT_TILT_POS = "set_current_tilt_position"
+SVC_SET_SUNNY = "set_sunny"
+SVC_SET_WINDY = "set_windy"
 
 KEY_OPEN_CLOSE = "open_close"
 KEY_STOP = "stop"
 KEY_POSITION = "position"
-
+ATTR_SUNNY = "sunny"
+ATTR_WINDY = "windy"
 
 POSITION_SERVICE_SCHEMA: Final = make_entity_service_schema(
     {vol.Required(ATTR_POSITION): vol.All(
@@ -50,6 +55,12 @@ TILT_POSITION_SERVICE_SCHEMA: Final = make_entity_service_schema(
     {vol.Required(ATTR_TILT_POSITION): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=100)
             )}
+)
+SUNNY_SERVICE_SCHEMA: Final = make_entity_service_schema(
+    {vol.Required(ATTR_SUNNY): vol.All(vol.Coerce(bool))}
+)
+WINDY_SERVICE_SCHEMA: Final = make_entity_service_schema(
+    {vol.Required(ATTR_WINDY): vol.All(vol.Coerce(bool))}
 )
 
 
@@ -100,6 +111,10 @@ async def async_setup_entry(
     platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
     platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_tilt_open")
     platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
+    platform.async_register_entity_service(SVC_SET_CURRENT_POS, POSITION_SERVICE_SCHEMA, "async_set_current_position")
+    platform.async_register_entity_service(SVC_SET_CURRENT_TILT_POS, TILT_POSITION_SERVICE_SCHEMA, "async_set_current_tilt_position")
+    platform.async_register_entity_service(SVC_SET_SUNNY, SUNNY_SERVICE_SCHEMA, "async_set_sunny")
+    platform.async_register_entity_service(SVC_SET_WINDY, WINDY_SERVICE_SCHEMA, "async_set_windy")
 
 
 class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
@@ -462,3 +477,36 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         """Hold cover."""
         # print(f"Stopping Cover id#{self._shade_id}")
         await self._controller.api.stop_shade(self._shade_id)
+
+    async def async_set_current_position(self, **kwargs: Any) -> None:
+        """Sets the current position for the device without moving it"""
+        if self._flip_position is True:
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                await self._controller.api.set_current_position(
+                    self._shade_id, 100 - int(kwargs[ATTR_POSITION])
+                )
+            else:
+                await self._controller.api.set_current_position(
+                    self._shade_id, int(kwargs[ATTR_POSITION])
+                )
+        else:
+            if self._attr_device_class == CoverDeviceClass.AWNING:
+                await self._controller.api.set_current_position(
+                    self._shade_id, int(kwargs[ATTR_POSITION])
+                )
+            else:
+                await self._controller.api.set_current_position(
+                    self._shade_id, 100 - int(kwargs[ATTR_POSITION])
+                )
+
+    async def async_set_current_tilt_position(self, **kwargs: Any) -> None:
+        """Sets the current position for the device without moving it"""
+        await self._controller.api.set_current_tilt_position(self._shade_id, int(kwargs[ATTR_TILT_POSITION]))
+
+    async def async_set_sunny(self, **kwargs:Any) -> None:
+        """Sets the sensor value for the device by sending the appropriate frames"""
+        await self._controller.api.set_sunny(self._shade_id, bool(kwargs[ATTR_SUNNY]))
+
+    async def async_set_windy(self, **kwargs:Any) -> None:
+        """Sets the sensor value for the device by sending the appropriate frames"""
+        await self._controller.api.set_windy(self._shade_id, bool(kwargs[ATTR_WINDY]))

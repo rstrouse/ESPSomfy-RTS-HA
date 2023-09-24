@@ -35,6 +35,8 @@ from .const import (
     API_TILTCOMMAND,
     API_SHADES,
     API_GROUPS,
+    API_SETPOSITIONS,
+    API_SETSENSOR,
     DOMAIN,
     EVT_CONNECTED,
     EVT_SHADEADDED,
@@ -520,13 +522,34 @@ class ESPSomfyAPI:
 
     async def shade_command(self, data):
         """Send commands to ESPSomfyRTS via PUT request"""
+        await self.put_command(API_SHADECOMMAND, data)
+
+    async def set_current_position(self, shade_id:int, position:int):
+        """Sets the current position without moving the motor"""
+        await self.put_command(API_SETPOSITIONS, {"shadeId": shade_id, "position": position})
+
+    async def set_current_tilt_position(self, shade_id: int, tilt_position:int):
+        """Sets the current position without moving the motor"""
+        await self.put_command(API_SETPOSITIONS, {"shadeId": shade_id, "tiltPosition": tilt_position})
+
+    async def set_sunny(self, shade_id:int, sunny:bool):
+        """Set the sunny condition for the motor"""
+        await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "sunny": sunny})
+
+    async def set_windy(self, shade_id:int, windy:bool):
+        """Set the windy condition for the motor"""
+        await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "windy": windy})
+
+
+    async def put_command(self, command, data):
+        """Sends a put command to the device"""
         async with self._session.put(
-            f"{self._api_url}{API_SHADECOMMAND}", json=data
-        ) as resp:
+            f"{self._api_url}{command}", json=data) as resp:
             if resp.status == 200:
                 pass
             else:
                 _LOGGER.error(await resp.text())
+
 
     async def login(self, data):
         """Log in to EPSSomfy device"""
