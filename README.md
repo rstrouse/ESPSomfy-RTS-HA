@@ -16,6 +16,9 @@ Once configured you will be able to open, close, and set the position of your sh
 
 ![image](https://user-images.githubusercontent.com/47839015/213933858-95042e9e-0874-4e58-8123-87146439a20e.png)
 
+# Services
+There are a number of automation services available.  You can find these in the [Services](https://github.com/rstrouse/ESPSomfy-RTS-HA/wiki/Services) wiki.
+
 # Events
 The integration emits events on the Home Assistant event bus for all commands whether they have originated in Home Assistant, a remote control, or the ESPSomfy RTS web interface.  These events can be captured using the `espsomfy-rts_event` type.
 
