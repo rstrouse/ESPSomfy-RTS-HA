@@ -117,11 +117,13 @@ async def async_setup_entry(
     platform.async_register_entity_service(SVC_SET_WINDY, WINDY_SERVICE_SCHEMA, "async_set_windy")
 
 
+
 class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
     """A grpi[] that is associated with a controller"""
 
     def __init__(self, hass: HomeAssistant, controller: ESPSomfyController, data) -> None:
         ESPSomfyEntity.__init__(self=self, controller=controller, data=data)
+        self._hass = hass
         self._controller = controller
         self._group_id = data["groupId"]
         self._attr_device_class = CoverDeviceClass.SHADE
@@ -129,17 +131,30 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
         if "linkedShades" in data:
             for linked_shade in data["linkedShades"]:
                 self._linked_shade_ids.append(int(linked_shade["shadeId"]))
-
-        devices = device_registry.async_get(hass)
-        device = devices.async_get_device({(DOMAIN, self._controller.unique_id)})
-        entities = entity_registry.async_get(hass)
         uuid = f"{controller.unique_id}_group{self._group_id}"
+
+        # Delay setting our entites until added_to_hass.  This is because HASS may not have
+        # set the registry entities yet.
+        # entities = entity_registry.async_get(hass)
+        # shade_ids:list[str] = []
+        #for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
+        #    for cover_id in self._linked_shade_ids:
+        #        if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
+        #            shade_ids.append(entity.entity_id)
+
+        super().__init__(unique_id=uuid, name=data["name"], entities=[])
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to device events."""
+        entities = entity_registry.async_get(self._hass)
         shade_ids:list[str] = []
         for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
             for cover_id in self._linked_shade_ids:
                 if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
                     shade_ids.append(entity.entity_id)
-        CoverGroup.__init__(self=self, unique_id=uuid, name=data["name"], entities=shade_ids)
+        self._entities = shade_ids
+        self._attr_extra_state_attributes = {ATTR_ENTITY_ID: shade_ids}
+        await super().async_added_to_hass()
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -220,7 +235,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             self._tilt_direction = data["tiltDirection"] if "tiltDirecion" in data else 0
         if "tiltType" in data:
             match int(data["tiltType"]):
-                case 1 | 2:
+                case 1 | 2 | 4:
                     self._has_tilt = True
                     self._attr_supported_features |= (
                         CoverEntityFeature.OPEN_TILT

@@ -1,49 +1,73 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Configure ESPSomfy RTS",
-        "description": "Enter the host/ip address for the ESPSomfy RTS device",
-        "data": {
-          "host": "The ip address for the ESPSomfy RTS device"
-        }
-      },
-      "confirm": {
-        "description": "[%key:common::config_flow::description::confirm_setup%]"
-      },
-      "zeroconf_confirm": {
-        "description": "Do you want to add {model} with server id {server_id} to Home Assistant?",
-        "title": "ESPSomfy RTS Discovered",
-        "data": {
-          "host": "IP address for the ESPSomfy RTS device"
-        }
-      },
-      "init": {
-        "title": "Configure ESPSomfy RTS",
-        "description": "Enter some data",
-        "data": {
-          "host": "[%key:common::config_flow::data::host%]"
-        }
-      }
+    "abort": {
+      "no_devices_found": "No devices found on the network",
+      "single_instance_allowed": "Already configured. Only a single configuration possible."
     },
     "error": {
-      "invalid_host": "[%key:common::config_flow::error::invalid_host%]",
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]",
-      "discovery_error": "Device not found"
+      "cannot_connect": "Failed to connect",
+      "discovery_error": "Device not found",
+      "invalid_host": "Invalid hostname or IP address",
+      "unknown": "Unexpected error",
+      "invalid_password": "Invalid username or password",
+      "invalid_pin": "Invalid Pin",
+      "login_error": "Invalid login"
     },
-    "abort": {
-      "single_instance_allowed": "[%key:common::config_flow::abort::single_instance_allowed%]",
-      "no_devices_found": "[%key:common::config_flow::abort::no_devices_found%]"
+    "step": {
+      "confirm": {
+        "init": {
+          "data": {
+            "host": "Host address for the ESPSomfy RTS device",
+            "username": "Username",
+            "password": "Password",
+            "pin": "Pin Number"
+          },
+          "title": "Configure ESPSomfy RTS",
+          "description": "Provide the configured security options for your device"
+        }
+      },
+      "user": {
+        "data": {
+          "host": "Host address for the ESPSomfy RTS device",
+          "username": "Username",
+          "password": "Password",
+          "pin": "Pin Number"
+        },
+        "description": "Provide the configured security options for your device",
+        "title": "Configure ESPSomfy RTS"
+      },
+      "zeroconf_confirm": {
+        "data": {
+          "host": "Host address for the ESPSomfy RTS device",
+          "username": "Username",
+          "password": "Password",
+          "pin": "Pin Number"
+        },
+        "description": "Do you want to add {model} with server id {server_id} to Home Assistant?",
+        "title": "ESPSomfy RTS Discovered"
+      }
     }
   },
   "options": {
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "discovery_error": "Device not found",
+      "invalid_host": "Invalid hostname or IP address",
+      "unknown": "Unexpected error",
+      "invalid_password": "Invalid username or password",
+      "invalid_pin": "Invalid Pin",
+      "login_error": "Invalid login"
+    },
     "step": {
       "init": {
-        "title": "[%key:common::config_flow::data::location%]",
         "data": {
-          "host": "[%key:common::config_flow::data::host%]"
-        }
+          "host": "Host address for the ESPSomfy RTS device",
+          "username": "Username",
+          "password": "Password",
+          "pin": "Pin Number"
+        },
+        "title": "Configure ESPSomfy RTS",
+        "description": "Provide the configured security options for your device"
       }
     }
   }
