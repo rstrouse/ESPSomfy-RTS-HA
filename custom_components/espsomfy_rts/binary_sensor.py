@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import ESPSomfyEntity
 from .controller import ESPSomfyController
-from .const import DOMAIN, EVT_SHADESTATE, EVT_GROUPSTATE
+from .const import DOMAIN, EVT_SHADESTATE, EVT_GROUPSTATE, EVT_CONNECTED
 
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -57,6 +57,7 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
         self._shade_id = None
         self._group_id = None
         self._sensor_type = None
+        self._available = True
         if "groupId" in data:
             self._group_id = data["groupId"]
             self._attr_unique_id = f"sun_group_{controller.unique_id}_{self._group_id}"
@@ -74,7 +75,10 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if(self._sensor_type == "motor"
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif(self._sensor_type == "motor"
            and "shadeId" in self._controller.data
            and self._controller.data["shadeId"] == self._shade_id
            and self._controller.data["event"] == EVT_SHADESTATE
@@ -90,11 +94,18 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
             self._attr_is_on = bool((int(self._controller.data["flags"]) & 0x20) == 0x20)
             self.async_write_ha_state()
 
+
     @property
     def icon(self) -> str:
         if self.is_on:
             return "mdi:weather-sunny"
         return "mdi:weather-sunny-off"
+
+    @property
+    def available(self) -> bool:
+        """Indicates whether the shade is available"""
+        return self._available
+
 
 class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
     """A sun flag sensor indicating whether there is sun"""
@@ -106,6 +117,7 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
         self._shade_id = None
         self._group_id = None
         self._sensor_type = None
+        self._available = True
         if "groupId" in data:
             self._group_id = data["groupId"]
             self._attr_unique_id = f"wind_group_{controller.unique_id}_{self._group_id}"
@@ -123,7 +135,10 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if(self._sensor_type == "motor"
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif(self._sensor_type == "motor"
            and "shadeId" in self._controller.data
            and self._controller.data["shadeId"] == self._shade_id
            and self._controller.data["event"] == EVT_SHADESTATE
@@ -144,3 +159,8 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
         if self.is_on:
             return "mdi:wind-power"
         return "mdi:wind-power-outline"
+
+    @property
+    def available(self) -> bool:
+        """Indicates whether the shade is available"""
+        return self._available

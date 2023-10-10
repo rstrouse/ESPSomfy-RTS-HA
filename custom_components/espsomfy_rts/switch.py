@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import ESPSomfyEntity
 from .controller import ESPSomfyController
-from .const import DOMAIN, EVT_SHADESTATE, EVT_GROUPSTATE
+from .const import DOMAIN, EVT_SHADESTATE, EVT_GROUPSTATE, EVT_CONNECTED
 
 
 from homeassistant.components.switch import SwitchEntity
@@ -64,6 +64,7 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
         self._attr_name = data["name"]
         self._attr_has_entity_name = False
         self._sunswitch_type = None
+        self._available = True
         if "groupId" in data:
             self._group_id = data["groupId"]
             self._attr_unique_id = f"sunswitch_group_{controller.unique_id}_{self._group_id}"
@@ -80,7 +81,10 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if (self._sunswitch_type == "motor"
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif (self._sunswitch_type == "motor"
             and "shadeId" in self._controller.data
             and self._controller.data["shadeId"] == self._shade_id):
             if (
@@ -115,6 +119,12 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
             return
         await self.coordinator.api.sun_flag_group_off(self._group_id)
 
+    @property
+    def available(self) -> bool:
+        """Indicates whether the shade is available"""
+        return self._available
+
+
 class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
     """A binary switch for toggling a dry contact"""
 
@@ -128,6 +138,7 @@ class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
         self._attr_has_entity_name = False
         self._binaryswitch_type = data["shadeType"]
         self._shade_id = data["shadeId"]
+        self._available = True
         self._attr_unique_id = f"binaryswitch_{controller.unique_id}_{self._shade_id}"
         if "position" in data:
             self._attr_is_on = bool((int(data["position"])) > 0)
@@ -136,10 +147,17 @@ class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if("position" in self._controller.data and self._controller.data["shadeId"] == self._shade_id):
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif("position" in self._controller.data and self._controller.data["shadeId"] == self._shade_id):
             self._attr_is_on = bool((int(self._controller.data["position"])) > 0)
-        self.async_write_ha_state()
+            self.async_write_ha_state()
 
+    @property
+    def available(self) -> bool:
+        """Indicates whether the shade is available"""
+        return self._available
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""

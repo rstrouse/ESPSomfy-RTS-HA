@@ -70,6 +70,7 @@ class SocketListener(threading.Thread):
         self.filter = None
         self.running_future = None
         self.reconnects = 0
+        self._connect_timer = None
 
     def __enter__(self):
         """Start the thread."""
@@ -100,12 +101,15 @@ class SocketListener(threading.Thread):
             on_message=self.ws_onmessage,
             on_error=self.ws_onerror,
             on_close=self.ws_onclose,
+            on_open=self.ws_onopen,
             keep_running=True,
         )
         self.main_loop.run_in_executor(None, self.ws_begin)
 
     def reconnect(self):
         """Reconnect to the web socket"""
+        if(self._connect_timer != None):
+            self._connect_timer.cancel()
         self.reconnects = self.reconnects + 1
         self.main_loop = asyncio.get_event_loop()
         try:
@@ -114,11 +118,21 @@ class SocketListener(threading.Thread):
                 on_message=self.ws_onmessage,
                 on_error=self.ws_onerror,
                 on_close=self.ws_onclose,
+                on_open=self.ws_onopen,
                 keep_running=True,
             )
             self.main_loop.run_in_executor(None, self.ws_begin)
+            self._connect_timer = None
+            self.connected = True
         except websocket.WebSocketAddressException:
-            Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer.start()
+        except websocket.WebSocketTimeoutException:
+            self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer.start()
+        except websocket.WebSocketConnectionClosedException:
+            self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer.start()
 
     def set_filter(self, arr: Any) -> None:
         """Sets the filter for the events"""
@@ -146,6 +160,10 @@ class SocketListener(threading.Thread):
         self.connected = False
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.onclose)
+    def ws_onopen(self, wsapp):
+        """The socket was opened"""
+        self.connected = True
+        self.hass.loop.call_soon_threadsafe(self.onopen)
 
     def ws_onmessage(self, wsapp, message: str):
         """Process the incoming message"""
@@ -160,7 +178,6 @@ class SocketListener(threading.Thread):
                 self.hass.loop.call_soon_threadsafe(self.onpacket, data)
         else:
             if message.lower() == "connected":
-                self.hass.loop.call_soon_threadsafe(self.onopen)
                 self.reconnects = 0
                 self.connected = True
 
@@ -326,19 +343,19 @@ class ESPSomfyController(DataUpdateCoordinator):
         """Callback when the websocket is opened"""
         # print("Websocket is connected")
         data = {"event": EVT_CONNECTED, "connected": True}
-        self.async_set_updated_data(data)
+        self.async_set_updated_data(data=data)
 
     def ws_onerror(self, exception):
         """An error occurred on the socket connection"""
         # print(exception)
         data = {"event": EVT_CONNECTED, "connected": False}
-        self.async_set_updated_data(data)
+        self.async_set_updated_data(data=data)
 
     def ws_onclose(self):
         """The socket has been closed"""
         # print("Websocket closed")
         data = {"event": EVT_CONNECTED, "connected": False}
-        self.async_set_updated_data(data)
+        self.async_set_updated_data(data=data)
 
 
 class ESPSomfyAPI:
@@ -598,7 +615,7 @@ class ESPSomfyAPI:
                 _LOGGER.error(await resp.text())
 
     async def get_initial(self):
-        """Get the initial config from nodejs-PoolController."""
+        """Get the initial config from ESPSomfy RTS."""
         try:
             self._session = aiohttp_client.async_get_clientsession(self.hass)
             async with self._session.get(f"{self._api_url}{API_DISCOVERY}") as resp:

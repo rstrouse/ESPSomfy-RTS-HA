@@ -13,7 +13,7 @@ from .controller import ESPSomfyAPI, ESPSomfyController
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.COVER,
-    Platform.SWITCH,
+    Platform.SWITCH
 ]
 
 

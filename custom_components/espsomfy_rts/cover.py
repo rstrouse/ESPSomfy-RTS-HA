@@ -124,10 +124,12 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
     def __init__(self, hass: HomeAssistant, controller: ESPSomfyController, data) -> None:
         ESPSomfyEntity.__init__(self=self, controller=controller, data=data)
         self._hass = hass
+        self._available = True
         self._controller = controller
         self._group_id = data["groupId"]
         self._attr_device_class = CoverDeviceClass.SHADE
         self._linked_shade_ids = []
+
         if "linkedShades" in data:
             for linked_shade in data["linkedShades"]:
                 self._linked_shade_ids.append(int(linked_shade["shadeId"]))
@@ -158,18 +160,22 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if "groupId" in self._controller.data:
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif "groupId" in self._controller.data:
             if self._controller.data["groupId"] == self._group_id:
                 if "linkedShades" in self._controller.data:
                     self._linked_shade_ids.clear()
                     for shade in self._controller.data["linkedShades"]:
                         self._linked_shade_ids.append(int(shade["shadeId"]))
+                self._available = True
                 self.async_write_ha_state()
-        elif (
-            self._controller.data["event"] == EVT_CONNECTED
-            and not self._controller.data["connected"]
-        ):
-            self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        """Indicates whether the shade is available"""
+        return self._available
 
     @property
     def should_poll(self) -> bool:
@@ -275,7 +281,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if "shadeId" in self._controller.data:
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif "shadeId" in self._controller.data:
             if self._controller.data["shadeId"] == self._shade_id:
                 if self._controller.data["event"] == EVT_SHADESTATE:
                     if "remoteAddress" in self._controller.data:
@@ -337,12 +346,6 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     }
                     self.hass.bus.async_fire("espsomfy-rts_event", bus_data)
                 self.async_write_ha_state()
-        elif (
-            self._controller.data["event"] == EVT_CONNECTED
-            and not self._controller.data["connected"]
-        ):
-            self._available = False
-            self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
