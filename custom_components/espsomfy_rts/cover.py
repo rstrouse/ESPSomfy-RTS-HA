@@ -208,7 +208,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._controller = controller
         self._shade_id = data["shadeId"]
         self._position = data["position"]
-        self._tilt_postition = 100
+        self._tilt_position = 100
         self._tilt_direction = 0
         self._attr_unique_id = f"{controller.unique_id}_{self._shade_id}"
         self._attr_name = data["name"]
@@ -217,12 +217,14 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._has_tilt = False
         self._has_lift = True
         self._flip_position = False
+        self._tilt_type = 0
         self._state_attributes: dict[str, Any] = dict([])
 
         if "flipPosition" in data and data["flipPosition"] is True:
             self._flip_position = True
 
         self._attr_device_class = CoverDeviceClass.SHADE
+
 
         self._attr_supported_features = (
             CoverEntityFeature.OPEN
@@ -237,9 +239,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                 | CoverEntityFeature.SET_TILT_POSITION
             )
             self._has_tilt = True
-            self._tilt_postition = data["tiltPosition"] if "tiltPosition" in data else 100
+            self._tilt_position = data["tiltPosition"] if "tiltPosition" in data else 100
             self._tilt_direction = data["tiltDirection"] if "tiltDirecion" in data else 0
         if "tiltType" in data:
+            self._tilt_type = int(data["tiltType"])
             match int(data["tiltType"]):
                 case 1 | 2 | 4:
                     self._has_tilt = True
@@ -311,7 +314,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                         if "tiltDirection" in self._controller.data:
                             self._tilt_direction = int(self._controller.data["tiltDirection"])
                         if "tiltPosition" in self._controller.data:
-                            self._tilt_postition = int(self._controller.data["tiltPosition"])
+                            self._tilt_position = int(self._controller.data["tiltPosition"])
                         if "tiltTarget" in self._controller.data:
                             self._state_attributes["tilt_target"] = int(self._controller.data["tiltTarget"])
                         if "myTiltPos" in self._controller.data:
@@ -386,12 +389,25 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         if not self._has_tilt:
             return None
         if self._flip_position is True:
-            return self._tilt_postition
-        return 100 - self._tilt_postition
+            return self._tilt_position
+        return 100 - self._tilt_position
 
     @property
     def is_opening(self) -> bool:
         """Return true if cover is opening."""
+        if self._tilt_type == 3:
+            if self._tilt_direction == 0:
+                return False
+            elif self._tilt_direction == 1 and self._tilt_position < 50:
+                return True
+            elif self._tilt_direction == 1 and self._tilt_position >= 50:
+                return False
+            elif self._tilt_direction == -1 and self._tilt_position < 50:
+                return False
+            elif self._tilt_direction == -1 and self._tilt_position >= 50:
+                return True
+
+
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._direction == 1
         return self._direction == -1 or self._tilt_direction == -1
@@ -399,6 +415,19 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_closing(self) -> bool:
         """Return true if cover is closing."""
+        if self._tilt_type == 3:
+            if self._tilt_direction == 0:
+                return False
+            elif self._tilt_direction == 1 and self._tilt_position < 50:
+                return False
+            elif self._tilt_direction == 1 and self._tilt_position >= 50:
+                return True
+            elif self._tilt_direction == -1 and self._tilt_position < 50:
+                return True
+            elif self._tilt_direction == -1 and self._tilt_position >= 50:
+                return False
+
+
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._direction == -1
         return self._direction == 1 or self._tilt_direction == 1
@@ -406,24 +435,32 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     @property
     def is_closed(self) -> bool:
         """Return true if cover is closed."""
+        if self._tilt_type == 3:
+            return self._tilt_position == 100 or self._tilt_position == 0
+
+
+
         if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 return self._position == 100
             return self._position == 0
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._position == 0
-        return (self._position == 100 or not self._has_lift) and (self._tilt_postition == 100 or not self._has_tilt)
+        return (self._position == 100 or not self._has_lift) and (self._tilt_position == 100 or not self._has_tilt)
 
     @property
     def is_open(self) -> bool:
         """Return true if cover is closed."""
+        if self._tilt_type == 3:
+            return self._tilt_position < 100 and self._tilt_position > 0
+
         if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 return self._position == 0
             return self._position == 100
         if self._attr_device_class == CoverDeviceClass.AWNING:
             return self._position == 100
-        return (self._position == 0  or not self._has_lift) and (self._tilt_postition == 0 or not self._has_tilt)
+        return (self._position == 0  or not self._has_lift) and (self._tilt_position == 0 or not self._has_tilt)
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
