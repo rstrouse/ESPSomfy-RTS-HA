@@ -151,13 +151,15 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
         for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
             for cover_id in self._linked_shade_ids:
                 if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
-                    if not entity.entity_id in self._entities:
-                        self._entities.append(entity.entity_id)
+                    if hasattr(self, "_entities"):
+                        if not entity.entity_id in self._entities:
+                            self._entities.append(entity.entity_id)
+                    elif hasattr(self, "_entity_ids"):
+                        if not entity.entity_id in self._entity_ids:
+                            self._entity_ids.append(entity.entity_id)
                     shade_ids.append(entity.entity_id)
         # self._entities = shade_ids
         self._attr_extra_state_attributes = {ATTR_ENTITY_ID: shade_ids}
-
-        print(self._entities)
         await super().async_added_to_hass()
 
     def _handle_coordinator_update(self) -> None:
