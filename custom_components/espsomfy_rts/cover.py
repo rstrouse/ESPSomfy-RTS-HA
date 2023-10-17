@@ -14,10 +14,10 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.components.group.cover import CoverGroup
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import (ConfigEntry, ConfigEntries)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.config_validation import make_entity_service_schema
-from homeassistant.helpers import entity_platform, device_registry, entity_registry
+from homeassistant.helpers import entity_platform, entity_registry
 from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -84,11 +84,11 @@ async def async_setup_entry(
             pass
     if new_shades:
         async_add_entities(new_shades)
+
     new_groups = []
     for group in controller.api.groups:
         try:
             new_groups.append(ESPSomfyGroup(hass=hass, controller=controller, data=group))
-
         except KeyError:
             pass
     if new_groups:
@@ -135,16 +135,8 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
                 self._linked_shade_ids.append(int(linked_shade["shadeId"]))
         uuid = f"{controller.unique_id}_group{self._group_id}"
 
-        # Delay setting our entites until added_to_hass.  This is because HASS may not have
-        # set the registry entities yet.
-        # entities = entity_registry.async_get(hass)
-        # shade_ids:list[str] = []
-        #for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
-        #    for cover_id in self._linked_shade_ids:
-        #        if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
-        #            shade_ids.append(entity.entity_id)
+        entities = entity_registry.async_get(hass)
         shade_ids:list[str] = []
-        entities = entity_registry.async_get(self._hass)
         for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
             for cover_id in self._linked_shade_ids:
                 if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
@@ -159,10 +151,12 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
         for entity in async_entries_for_config_entry(entities, self._controller.config_entry_id):
             for cover_id in self._linked_shade_ids:
                 if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
+                    if not entity.entity_id in self._entities:
+                        self._entities.append(entity.entity_id)
                     shade_ids.append(entity.entity_id)
-        print(shade_ids)
-        self._entities = shade_ids
+        # self._entities = shade_ids
         self._attr_extra_state_attributes = {ATTR_ENTITY_ID: shade_ids}
+        print(self._entities)
         await super().async_added_to_hass()
 
     def _handle_coordinator_update(self) -> None:
