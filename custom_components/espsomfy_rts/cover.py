@@ -156,6 +156,7 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
                     shade_ids.append(entity.entity_id)
         # self._entities = shade_ids
         self._attr_extra_state_attributes = {ATTR_ENTITY_ID: shade_ids}
+
         print(self._entities)
         await super().async_added_to_hass()
 
