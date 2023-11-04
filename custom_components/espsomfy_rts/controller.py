@@ -10,7 +10,8 @@ from typing import Any
 
 import aiohttp
 import websocket
-
+import re
+from packaging.version import Version, parse as version_parse
 
 from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
 from homeassistant.const import (
@@ -44,6 +45,8 @@ from .const import (
     EVT_SHADESTATE,
     EVT_GROUPSTATE,
     EVT_SHADECOMMAND,
+    EVT_FWSTATUS,
+    EVT_UPDPROGRESS
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -217,6 +220,16 @@ class ESPSomfyController(DataUpdateCoordinator):
         """Gets the current version for the controller"""
         return self.api.version
 
+    @property
+    def latest_version(self) -> str:
+        """Gets the current version for the controller"""
+        return self.api.latest_version
+
+    @property
+    def can_update(self) -> bool:
+        """Gets a flag that indicates whether the firmware can be updated"""
+        return self.api.can_update
+
     async def ws_close(self) -> None:
         """Closes the tasks and sockets"""
         if not self.ws_listener is None:
@@ -237,9 +250,14 @@ class ESPSomfyController(DataUpdateCoordinator):
             self.ws_onerror,
         )
         self.ws_listener.set_filter(
-            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE]
+            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS]
         )
         await self.ws_listener.connect()
+    async def create_backup(self) -> bool:
+        return await self.api.create_backup()
+
+    async def update_firmware(self, version) -> bool:
+        return await self.api.update_firmware(version)
 
     def ensure_group_configured(self, data):
         """Ensures the group exists on Home Assistant"""
@@ -337,6 +355,12 @@ class ESPSomfyController(DataUpdateCoordinator):
         # does is add an entity that is not really attached.
         # if data["event"] == EVT_SHADEADDED:
         #    self.ensure_shade_configured(data)
+
+        # Catch the fwStatus messages before they go anywhere
+        # this will allow us to simply update the latest firmware
+        if "event" in data and data["event"] == EVT_FWSTATUS:
+            self.api.set_firmware(data)
+
         self.async_set_updated_data(data=data)
 
     def ws_onopen(self):
@@ -374,6 +398,7 @@ class ESPSomfyAPI:
         self._headers = dict({"apikey": ""})
         self._canLogin = False
         self._deviceName = data[CONF_HOST]
+        self._can_update = False
 
     @property
     def shades(self) -> Any:
@@ -400,6 +425,13 @@ class ESPSomfyAPI:
         return self._config["version"]
 
     @property
+    def latest_version(self) -> str | None:
+        """Getter for the latest version"""
+        if "latest" in self._config:
+            return self._config["latest"]
+        return None
+
+    @property
     def model(self) -> str:
         """Getter for the model number"""
         return self._config["model"]
@@ -411,7 +443,13 @@ class ESPSomfyAPI:
 
     @property
     def deviceName(self) -> str:
+        """Getter for the device name"""
         return self._deviceName
+
+    @property
+    def can_update(self) -> bool:
+        """Getter for whether the firmware is updatable"""
+        return self._can_update
 
     def get_sock_url(self):
         """Get the socket interface url"""
@@ -424,6 +462,53 @@ class ESPSomfyAPI:
     def get_config(self):
         """Return the initial config"""
         return self._config
+    def set_firmware(self, data) -> None:
+        """Set the firmware data from the socket"""
+        cver = self._config["version"]
+        new_ver = cver
+        if "fwVersion" in data:
+            new_ver = data["fwVersion"]
+            if "name" in new_ver:
+                new_ver = new_ver["name"]
+        elif "version" in data:
+            new_ver = data["version"]
+        if "latest" in data:
+            self._config["latest"] = data["latest"]["name"]
+
+        self._config["version"] = new_ver
+        v = version_parse(new_ver)
+        if (v.major > 2) or (v.major == 2 and v.minor > 2) or (v.major == 2 and v.minor == 2 and v.micro > 0):
+            self._can_update = True
+        else:
+            self._can_update = False
+
+
+    async def update_firmware(self, version) -> bool:
+        url = f"{self._api_url}/downloadFirmware?ver={version}"
+        async with self._session.get(url, headers=self._headers) as resp:
+            if(resp.status == 200):
+                return True
+            else:
+                _LOGGER.error(await resp.text())
+        return False
+
+    async def create_backup(self) -> bool:
+        """Gets a backup"""
+        url = f"{self._api_url}/backup?attach=true"
+        async with self._session.get(url, headers=self._headers) as resp:
+            if  resp.status == 200:
+                hdr = resp.headers.get("Content-Disposition")
+                fname = re.findall('filename=\"(.+)\"', hdr)[0]
+                data = await resp.text()
+                fpath = self.hass.config.path(f"{fname}")
+                f = open(file=fpath, mode="w+", encoding="ascii")
+                if f is not None:
+                    f.write(data)
+                    f.close()
+                else:
+                    return False
+                return True
+        return False
 
     async def discover(self) -> Any | None:
         """Discover the device on the network"""
@@ -431,8 +516,8 @@ class ESPSomfyAPI:
         async with self._session.get(url, headers=self._headers) as resp:
             if resp.status == 200:
                 data = await resp.json()
+                self.set_firmware(data)
                 self._config["serverId"] = data["serverId"]
-                self._config["version"] = data["version"]
                 self._config["model"] = data["model"]
                 self._config["shades"] = data["shades"]
                 if "hostname" in data:
@@ -567,7 +652,6 @@ class ESPSomfyAPI:
             else:
                 _LOGGER.error(await resp.text())
 
-
     async def login(self, data):
         """Log in to EPSSomfy device"""
         if self._canLogin:
@@ -582,7 +666,6 @@ class ESPSomfyAPI:
                                 "apiKey"
                             ]
                     else:
-                        print(data)
                         if "type" in data:
                             if data["type"] == 1:
                                 raise LoginError(CONF_PIN, "invalid_pin")

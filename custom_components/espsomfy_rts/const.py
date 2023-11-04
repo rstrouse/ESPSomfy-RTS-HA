@@ -19,4 +19,6 @@ EVT_SHADECOMMAND = "shadeCommand"
 EVT_SHADEADDED = "shadeAdded"
 EVT_SHADEREMOVED = "shadeRemoved"
 EVT_CONNECTED = "connected"
+EVT_FWSTATUS = "fwStatus"
+EVT_UPDPROGRESS = "updateProgress"
 
