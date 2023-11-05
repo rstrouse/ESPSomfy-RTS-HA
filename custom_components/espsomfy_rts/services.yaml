@@ -74,7 +74,8 @@ set_tilt_position:
           max: 100
           unit_of_measurement: "%"
 set_current_position:
-  name: Sets the current position without moving the motor
+  name: Change Position
+  description: Sets the current position without moving the motor
   target:
     entity:
       integration: espsomfy_rts
@@ -90,7 +91,8 @@ set_current_position:
           max: 100
           unit_of_measurement: "%"
 set_current_tilt_position:
-  name: Sets the current tilt position without moving the motor
+  name: Change Tilt Position
+  description: Sets the current tilt position without moving the motor
   target:
     entity:
       integration: espsomfy_rts
@@ -106,7 +108,8 @@ set_current_tilt_position:
           max: 100
           unit_of_measurement: "%"
 set_sunny:
-  name: Sends the sensor commands to the motor indicating whether it is sunny or not
+  name: Set Sunny
+  description: Sends the sensor commands to the motor indicating whether it is sunny or not
   target:
     entity:
       integration: espsomfy_rts
@@ -119,7 +122,8 @@ set_sunny:
       selector:
         boolean:
 set_windy:
-  name: Sends the sensor commands to the motor indicating whether it is windy or not
+  name: Set Windy
+  description: Sends the sensor commands to the motor indicating whether it is windy or not
   target:
     entity:
       integration: espsomfy_rts

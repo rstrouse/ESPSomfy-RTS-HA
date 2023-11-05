@@ -422,7 +422,11 @@ class ESPSomfyAPI:
     @property
     def version(self) -> str:
         """Getter for the api version"""
-        return self._config["version"]
+        if "version" in self._config:
+            return self._config["version"]
+        elif "fwVersion" in self._config:
+            return self._config["fwVersion"]
+        return "0.0.0"
 
     @property
     def latest_version(self) -> str | None:
@@ -462,9 +466,12 @@ class ESPSomfyAPI:
     def get_config(self):
         """Return the initial config"""
         return self._config
+
     def set_firmware(self, data) -> None:
         """Set the firmware data from the socket"""
-        cver = self._config["version"]
+        cver = "0.0.0"
+        if "version" in self._config:
+            cver = self._config["version"]
         new_ver = cver
         if "fwVersion" in data:
             new_ver = data["fwVersion"]
