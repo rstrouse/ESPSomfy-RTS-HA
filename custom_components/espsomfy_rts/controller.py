@@ -480,7 +480,10 @@ class ESPSomfyAPI:
         elif "version" in data:
             new_ver = data["version"]
         if "latest" in data:
-            self._config["latest"] = data["latest"]["name"]
+            latest_ver = data["latest"]
+            if "name" in latest_ver:
+                latest_ver = latest_ver["name"]
+            self._config["latest"] = latest_ver
 
         self._config["version"] = new_ver
         v = version_parse(new_ver)
