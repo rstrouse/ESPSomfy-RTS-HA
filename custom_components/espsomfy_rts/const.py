@@ -1,5 +1,5 @@
 """Constants for the ESPSomfy RTS integration."""
-VERSION = "v2.2.1"
+VERSION = "v2.2.3"
 DOMAIN = "espsomfy_rts"
 MANUFACTURER = "rstrouse"
 API_CONTROLLER = "/controller"
