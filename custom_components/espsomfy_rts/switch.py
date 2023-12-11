@@ -25,7 +25,7 @@ async def async_setup_entry(
     new_entities = []
     for shade in controller.api.shades:
         try:
-            if "shadeType" in shade and int(shade["shadeType"]) == 9:
+            if "shadeType" in shade and (int(shade["shadeType"]) == 9 or int(shade["shadeType"] == 10):
                 new_entities.append(ESPSomfyBinarySwitch(controller=controller, data=shade))
             elif "sunSensor" in shade:
                 if shade["sunSensor"] is True:
