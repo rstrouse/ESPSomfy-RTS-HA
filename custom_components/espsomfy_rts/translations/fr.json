@@ -1,0 +1,74 @@
+{
+  "config": {
+    "abort": {
+      "no_devices_found": "Aucun appareil trouvé sur le réseau",
+      "single_instance_allowed": "Déjà configuré. Seule une configuration unique est possible."
+    },
+    "error": {
+      "cannot_connect": "Échec de la connexion",
+      "discovery_error": "Appareil non trouvé",
+      "invalid_host": "Nom d'hôte ou adresse IP invalide",
+      "unknown": "Erreur inattendue",
+      "invalid_password": "Nom d'utilisateur ou mot de passe invalide",
+      "invalid_pin": "Code PIN invalide",
+      "login_error": "Identifiant invalide"
+    },
+    "step": {
+      "confirm": {
+        "init": {
+          "data": {
+            "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
+            "username": "Nom d'utilisateur",
+            "password": "Mot de passe",
+            "pin": "Code PIN"
+          },
+          "title": "Configurer ESPSomfy RTS",
+          "description": "Fournir les options de sécurité configurées pour votre dispositif"
+        }
+      },
+      "user": {
+        "data": {
+          "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "pin": "Code PIN"
+        },
+        "description": "Fournir les options de sécurité configurées pour votre dispositif",
+        "title": "Configurer ESPSomfy RTS"
+      },
+      "zeroconf_confirm": {
+        "data": {
+        "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "pin": "Code PIN"
+        },
+        "description": "Voulez-vous ajouter {model} avec l'identifiant du serveur {server_id} à Home Assistant ?",
+        "title": "ESPSomfy RTS Découvert"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Échec de la connexion",
+      "discovery_error": "Appareil non trouvé",
+      "invalid_host": "Nom d'hôte ou adresse IP invalide",
+      "unknown": "Erreur inattendue",
+      "invalid_password": "Nom d'utilisateur ou mot de passe invalide",
+      "invalid_pin": "Code PIN invalide",
+      "login_error": "Identifiant invalide"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "pin": "Code PIN"
+        },
+        "title": "Configurer ESPSomfy RTS",
+        "description": "Paramétrage des options de sécurité configurées pour votre dispositif"
+      }
+    }
+  }
+}
