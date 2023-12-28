@@ -73,6 +73,7 @@ set_tilt_position:
           min: 0
           max: 100
           unit_of_measurement: "%"
+
 set_current_position:
   name: Change Position
   description: Sets the current position without moving the motor
@@ -90,6 +91,7 @@ set_current_position:
           min: 0
           max: 100
           unit_of_measurement: "%"
+
 set_current_tilt_position:
   name: Change Tilt Position
   description: Sets the current tilt position without moving the motor
@@ -107,6 +109,7 @@ set_current_tilt_position:
           min: 0
           max: 100
           unit_of_measurement: "%"
+
 set_sunny:
   name: Set Sunny
   description: Sends the sensor commands to the motor indicating whether it is sunny or not
@@ -121,6 +124,7 @@ set_sunny:
       required: true
       selector:
         boolean:
+
 set_windy:
   name: Set Windy
   description: Sends the sensor commands to the motor indicating whether it is windy or not
@@ -135,5 +139,36 @@ set_windy:
       required: true
       selector:
         boolean:
+
+send_command:
+  name: Send command
+  description: Send any command from RTS protocol
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+  fields:
+    command:
+      name: Command
+      description: Command to send
+      required: true
+      example: prog
+      selector:
+        select:
+          options:
+              - "Up"
+              - "My"
+              - "Down"
+              - "Toggle"
+              - "Prog"
+              - "UpDown"
+              - "MyUp"
+              - "MyDown"
+              - "MyUpDown"
+              - "StepUp"
+              - "StepDown"
+              - "Flag"
+              - "SunFlag"
+          mode: dropdown
 
 
