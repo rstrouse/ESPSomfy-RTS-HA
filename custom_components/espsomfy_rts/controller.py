@@ -511,7 +511,7 @@ class ESPSomfyAPI:
                 fname = re.findall('filename=\"(.+)\"', hdr)[0]
                 data = await resp.text()
                 fpath = self.hass.config.path(f"{fname}")
-                f = open(file=fpath, mode="w+", encoding="ascii")
+                f = open(file=fpath, mode="wb+")
                 if f is not None:
                     f.write(data)
                     f.close()
