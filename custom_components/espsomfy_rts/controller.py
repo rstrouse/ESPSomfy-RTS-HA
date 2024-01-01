@@ -46,7 +46,9 @@ from .const import (
     EVT_GROUPSTATE,
     EVT_SHADECOMMAND,
     EVT_FWSTATUS,
-    EVT_UPDPROGRESS
+    EVT_UPDPROGRESS,
+    EVT_WIFISTRENGTH,
+    EVT_ETHERNET,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -250,7 +252,7 @@ class ESPSomfyController(DataUpdateCoordinator):
             self.ws_onerror,
         )
         self.ws_listener.set_filter(
-            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS]
+            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_WIFISTRENGTH, EVT_ETHERNET]
         )
         await self.ws_listener.connect()
     async def create_backup(self) -> bool:
@@ -466,6 +468,9 @@ class ESPSomfyAPI:
     def get_config(self):
         """Return the initial config"""
         return self._config
+    def get_data(self):
+        """Return the internal data"""
+        return self.data
 
     def set_firmware(self, data) -> None:
         """Set the firmware data from the socket"""
@@ -513,7 +518,7 @@ class ESPSomfyAPI:
                 fpath = self.hass.config.path(f"{fname}")
                 f = open(file=fpath, mode="wb+")
                 if f is not None:
-                    f.write(data)
+                    f.write(data.encode())
                     f.close()
                 else:
                     return False
@@ -606,11 +611,11 @@ class ESPSomfyAPI:
     async def close_shade(self, shade_id: int):
         """Send the command to close the shade"""
         await self.shade_command({"shadeId": shade_id, "command": "down"})
-        
+
     async def toggle_shade(self, shade_id: int):
         """Sent the command to toggle"""
         await self.shade_command({"shadeId": shade_id, "command": "toggle"})
-        
+
     async def stop_shade(self, shade_id: int):
         """Send the command to stop the shade"""
         #print(f"STOP ShadeId:{shade_id}")
@@ -633,7 +638,7 @@ class ESPSomfyAPI:
         """Send the command to position the shade"""
         #print(f"POS ShadeId:{shade_id} Target:{position}")
         await self.shade_command({"shadeId": shade_id, "target": position})
-        
+
     async def raw_command(self, shade_id: int, command: str):
         """Send the command to the shade"""
         await self.shade_command({"shadeId": shade_id, "command": command})
