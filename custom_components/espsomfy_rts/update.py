@@ -16,14 +16,13 @@ from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
 
 
-
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up ESPSomfy RTS update based on a config entry."""
-    controller:ESPSomfyController = hass.data[DOMAIN][config_entry.entry_id]
+    controller: ESPSomfyController = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities([ESPSomfyRTSUpdateEntity(controller)])
 
 
@@ -31,9 +30,12 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     """Defines an ESPSomfy RTS update entity."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
-    _attr_supported_features = UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS
-    _attr_title = "ESPSomfy RTS"
-
+    _attr_supported_features = (
+        UpdateEntityFeature.SPECIFIC_VERSION
+        | UpdateEntityFeature.INSTALL
+        | UpdateEntityFeature.PROGRESS
+    )
+    _attr_title = "Firmware"
 
     def __init__(self, controller: ESPSomfyController) -> None:
         """Initialize the update entity."""
@@ -46,36 +48,44 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
         self._total_progress = 100
         if controller.can_update:
             self._attr_supported_features = (
-                UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
+                UpdateEntityFeature.INSTALL
+                | UpdateEntityFeature.SPECIFIC_VERSION
+                | UpdateEntityFeature.PROGRESS
+                | UpdateEntityFeature.BACKUP
             )
 
         super().__init__(controller=controller, data=None)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if(self._controller.data["event"] == EVT_FWSTATUS):
+        if self._controller.data["event"] == EVT_FWSTATUS:
             if self._controller.can_update:
                 self._attr_supported_features = (
-                    UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
+                    UpdateEntityFeature.INSTALL
+                    | UpdateEntityFeature.SPECIFIC_VERSION
+                    | UpdateEntityFeature.PROGRESS
+                    | UpdateEntityFeature.BACKUP
                 )
             else:
-                self._attr_supported_features = UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS
+                self._attr_supported_features = (
+                    UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS
+                )
             self.async_write_ha_state()
-        elif(self.controller.data["event"] == EVT_UPDPROGRESS):
+        elif self.controller.data["event"] == EVT_UPDPROGRESS:
             d = self.controller.data
             if "part" in d:
                 if int(d["part"]) == 0:
                     self._app_progress = 0
-                    self._fw_progress = (int(d["loaded"])/int(d["total"])) * 100
+                    self._fw_progress = (int(d["loaded"]) / int(d["total"])) * 100
                 elif int(d["part"]) == 100:
                     self._fw_progress = 100
-                    self._app_progress = (int(d["loaded"])/int(d["total"])) * 100
-                self._total_progress = int((self._fw_progress + self._app_progress)/ 2)
+                    self._app_progress = (int(d["loaded"]) / int(d["total"])) * 100
+                self._total_progress = int((self._fw_progress + self._app_progress) / 2)
                 self.async_write_ha_state()
+
     @property
     def can_install(self) -> bool:
         """Indicates whether the current version supports firmware installation"""
-
 
     @property
     def installed_version(self) -> str | None:
@@ -87,7 +97,7 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     @property
     def latest_version(self) -> str | None:
         """Latest version available for install."""
-        if(latest := self.coordinator.latest_version) is None:
+        if (latest := self.coordinator.latest_version) is None:
             return None
         return str(latest)
 
