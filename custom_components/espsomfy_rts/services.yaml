@@ -171,4 +171,25 @@ send_command:
               - "SunFlag"
           mode: dropdown
 
+reboot:
+  name: Reboot
+  description: Reboot the ESPSomfy Device
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: button
+      supported_features:
+        - fan.FanEntityFeature.SET_SPEED
+
+backup:
+  name: Backup
+  description: Backup the ESPSomfy Device
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: button
+      supported_features:
+        - fan.FanEntityFeature.OSCILLATE
+
+
 

@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import asyncio
+from enum import IntFlag
 import json
 import logging
 import threading
+import os
+from datetime import datetime
 from threading import Timer
 from typing import Any
 
@@ -52,6 +55,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
 
 
 class SocketListener(threading.Thread):
@@ -456,6 +460,10 @@ class ESPSomfyAPI:
     def can_update(self) -> bool:
         """Getter for whether the firmware is updatable"""
         return self._can_update
+    @property
+    def backup_dir(self) -> str:
+        """Gets the backup directory for the device"""
+        return self.hass.config.path(f"ESPSomfyRTS_{self.server_id}")
 
     def get_sock_url(self):
         """Get the socket interface url"""
@@ -508,22 +516,34 @@ class ESPSomfyAPI:
         return False
 
     async def create_backup(self) -> bool:
-        """Gets a backup"""
+        """Creates a backup"""
         url = f"{self._api_url}/backup?attach=true"
         async with self._session.get(url, headers=self._headers) as resp:
             if  resp.status == 200:
-                hdr = resp.headers.get("Content-Disposition")
-                fname = re.findall('filename=\"(.+)\"', hdr)[0]
+                if not os.path.exists(self.backup_dir):
+                    os.mkdir(self.backup_dir)
                 data = await resp.text()
-                fpath = self.hass.config.path(f"{fname}")
-                f = open(file=fpath, mode="wb+")
-                if f is not None:
-                    f.write(data.encode())
-                    f.close()
-                else:
-                    return False
-                return True
+                fpath = self.hass.config.path(f"{self.backup_dir}/{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}.backup")
+                with open(file=fpath, mode="wb+") as f:
+                    if f is not None:
+                        f.write(data.encode())
+                        f.close()
+                    else:
+                        return False
+                    return True
         return False
+
+    def get_backups(self) -> list[str] | None:
+        """Gets a list of all the available backups"""
+        f:list[str] = []
+        if not os.path.exists(self.backup_dir):
+            return None
+        files = os.listdir(self.backup_dir)
+        for file in files:
+            if(os.path.isfile(os.path.join(self.backup_dir, file)) and file.endswith(".backup") and file[:1].isdigit()):
+                f.append(file)
+        f.sort(reverse=True)
+        return f
 
     async def discover(self) -> Any | None:
         """Discover the device on the network"""

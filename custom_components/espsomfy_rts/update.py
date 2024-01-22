@@ -7,6 +7,7 @@ from homeassistant.components.update import (
     UpdateEntity,
     UpdateEntityFeature,
 )
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -34,11 +35,10 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     _attr_supported_features = UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS
     _attr_title = "ESPSomfy RTS"
 
-
     def __init__(self, controller: ESPSomfyController) -> None:
         """Initialize the update entity."""
         self._controller = controller
-        self._attr_name = f"ESPSomfy RTS {controller.server_id}"
+        self._attr_name = f"Firmware Update"
         self._attr_unique_id = f"update_{controller.unique_id}"
         self._update_status = 0
         self._fw_progress = 100

@@ -97,7 +97,7 @@ async def async_setup_entry(
     for shade in controller.api.shades:
         try:
             # We do not want any of the dry contacts here.
-            if "shadeType" in shade and not int(shade["shadeType"]) == 9:
+            if "shadeType" in shade and not (int(shade["shadeType"]) == 9 or int(shade["shadeType"]) == 10):
                 new_shades.append(ESPSomfyShade(controller, shade))
 
         except KeyError:
@@ -591,7 +591,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     async def async_set_windy(self, **kwargs:Any) -> None:
         """Sets the sensor value for the device by sending the appropriate frames"""
         await self._controller.api.set_windy(self._shade_id, bool(kwargs[ATTR_WINDY]))
-        
+
     async def async_send_command(self, **kwargs:Any) -> None:
         """Sends raw command from SVC"""
         await self._controller.api.raw_command(self._shade_id, kwargs[ATTR_COMMAND])

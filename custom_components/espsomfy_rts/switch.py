@@ -140,6 +140,9 @@ class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
         self._shade_id = data["shadeId"]
         self._available = True
         self._attr_unique_id = f"binaryswitch_{controller.unique_id}_{self._shade_id}"
+        self._flip_commands = False
+        if "flipCommands" in data:
+            self._flip_commands = bool(data["flipCommands"])
         if "position" in data:
             self._attr_is_on = bool((int(data["position"])) > 0)
         else:
@@ -161,8 +164,20 @@ class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
-        await self.coordinator.api.toggle_shade(self._shade_id)
+        if self._binaryswitch_type == 10:
+            if self._flip_commands:
+                await self.coordinator.api.close_shade(self._shade_id)
+            else:
+                await self.coordinator.api.open_shade(self._shade_id)
+        else:
+            await self.coordinator.api.toggle_shade(self._shade_id)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        await self.coordinator.api.toggle_shade(self._shade_id)
+        if self._binaryswitch_type == 10:
+            if self._flip_commands:
+                await self.coordinator.api.open_shade(self._shade_id)
+            else:
+                await self.coordinator.api.close_shade(self._shade_id)
+        else:
+            await self.coordinator.api.toggle_shade(self._shade_id)

@@ -1,5 +1,6 @@
 """The ESPSomfy RTS integration."""
 from __future__ import annotations
+from enum import IntFlag
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
@@ -15,8 +16,14 @@ PLATFORMS: list[Platform] = [
     Platform.COVER,
     Platform.SWITCH,
     Platform.UPDATE,
-    Platform.SENSOR
+    Platform.SENSOR,
+    Platform.BUTTON
 ]
+
+class ESPSomfyRTSEntityFeature(IntFlag):
+    """Supported features of the fan entity."""
+    REBOOT = 1
+    BACKUP = 2
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
