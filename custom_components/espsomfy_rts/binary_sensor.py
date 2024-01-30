@@ -28,6 +28,11 @@ async def async_setup_entry(
                 if shade["sunSensor"] is True:
                     new_entities.append(ESPSomfySunSensor(controller, shade))
                     new_entities.append(ESPSomfyWindSensor(controller, shade))
+                elif "shadeType" in shade:
+                    match(shade["shadeType"]):
+                        case 3:
+                            new_entities.append(ESPSomfyWindSensor(controller, shade))
+
             elif "shadeType" in shade:
                 match(shade["shadeType"]):
                     case 3:
