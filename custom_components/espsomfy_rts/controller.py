@@ -230,6 +230,15 @@ class ESPSomfyController(DataUpdateCoordinator):
     def latest_version(self) -> str:
         """Gets the current version for the controller"""
         return self.api.latest_version
+    @property
+    def check_for_update(self) -> bool:
+        """Indicates whether the firmware should check for updates"""
+        return self.api.check_for_update
+
+    @property
+    def internet_available(self) -> bool:
+        """Indicates whether the firmware should check for updates"""
+        return self.api.internet_available
 
     @property
     def can_update(self) -> bool:
@@ -438,6 +447,8 @@ class ESPSomfyAPI:
     def latest_version(self) -> str | None:
         """Getter for the latest version"""
         if "latest" in self._config:
+            if self._config["latest"] == "":
+                return None
             return self._config["latest"]
         return None
 
@@ -448,7 +459,7 @@ class ESPSomfyAPI:
 
     @property
     def apiKey(self) -> str:
-        """Gettter for the api key"""
+        """Getter for the api key"""
         return self._config["apiKey"]
 
     @property
@@ -464,7 +475,16 @@ class ESPSomfyAPI:
     def backup_dir(self) -> str:
         """Gets the backup directory for the device"""
         return self.hass.config.path(f"ESPSomfyRTS_{self.server_id}")
-
+    @property
+    def check_for_update(self) -> bool:
+        if "checkForUpdate" in self._config:
+            return self._config["checkForUpdate"]
+        return self._can_update
+    @property
+    def internet_available(self) -> bool:
+        if "inetAvailable" in self._config:
+            return self._config["inetAvailable"]
+        return self._can_update
     def get_sock_url(self):
         """Get the socket interface url"""
         return self._sock_url
@@ -497,6 +517,10 @@ class ESPSomfyAPI:
             if "name" in latest_ver:
                 latest_ver = latest_ver["name"]
             self._config["latest"] = latest_ver
+        if "checkForUpdate" in data:
+            self._config["checkForUpdate"] = data["checkForUpdate"]
+        if "inetAvailable" in data:
+            self._config["inetAvailable"] = data["inetAvailable"]
 
         self._config["version"] = new_ver
         v = version_parse(new_ver)

@@ -33,7 +33,7 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
     _attr_supported_features = UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS
-    _attr_title = "ESPSomfy RTS"
+    _attr_title = "ESPSomfy RTS Firmware"
 
     def __init__(self, controller: ESPSomfyController) -> None:
         """Initialize the update entity."""
@@ -44,7 +44,7 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
         self._fw_progress = 100
         self._app_progress = 100
         self._total_progress = 100
-        if controller.can_update:
+        if controller.check_for_update:
             self._attr_supported_features = (
                 UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
             )
@@ -54,7 +54,7 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if(self._controller.data["event"] == EVT_FWSTATUS):
-            if self._controller.can_update:
+            if self._controller.check_for_update and self._controller.internet_available:
                 self._attr_supported_features = (
                     UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
                 )
@@ -87,6 +87,8 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     @property
     def latest_version(self) -> str | None:
         """Latest version available for install."""
+        if(self.coordinator.check_for_update is False):
+            return None
         if(latest := self.coordinator.latest_version) is None:
             return None
         return str(latest)
