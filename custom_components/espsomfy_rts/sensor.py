@@ -46,13 +46,13 @@ async def async_setup_entry(
         if(len(data["chipModel"])):
             chip_model += "-"
             chip_model += data["chipModel"]
-            new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-                key="chip_model",
-                entity_category=EntityCategory.DIAGNOSTIC,
-                name="Chip Type",
-                native_value=chip_model.upper(),
-                events={},
-                icon="mdi:cpu-32-bit"), data=data))
+        new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+            key="chip_model",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            name="Chip Type",
+            native_value=chip_model.upper(),
+            events={},
+            icon="mdi:cpu-32-bit"), data=data))
     if("connType" in data):
         new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
             key="conn_type",
