@@ -546,7 +546,7 @@ class ESPSomfyAPI:
             if  resp.status == 200:
                 if not os.path.exists(self.backup_dir):
                     os.mkdir(self.backup_dir)
-                data = await resp.text()
+                data = await resp.text(encoding=None)
                 fpath = self.hass.config.path(f"{self.backup_dir}/{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}.backup")
                 with open(file=fpath, mode="wb+") as f:
                     if f is not None:
