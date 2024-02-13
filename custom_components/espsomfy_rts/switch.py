@@ -23,30 +23,30 @@ async def async_setup_entry(
     """Set up shades for the shade controller."""
     controller = hass.data[DOMAIN][config_entry.entry_id]
     new_entities = []
-    for shade in controller.api.shades:
-        try:
-            if "shadeType" in shade and (int(shade["shadeType"]) == 9 or int(shade["shadeType"] == 10)):
-                new_entities.append(ESPSomfyBinarySwitch(controller=controller, data=shade))
-            elif "sunSensor" in shade:
-                if shade["sunSensor"] is True:
-                    new_entities.append(ESPSomfySunSwitch(controller=controller, data=shade))
-            elif "shadeType" in shade:
-                match(shade["shadeType"]):
-                    case 3:
+    data = controller.api.get_config()
+    if("serverId" in data):
+        for shade in controller.api.shades:
+            try:
+                if "shadeType" in shade and (int(shade["shadeType"]) == 9 or int(shade["shadeType"] == 10)):
+                    new_entities.append(ESPSomfyBinarySwitch(controller=controller, data=shade))
+                elif "sunSensor" in shade:
+                    if shade["sunSensor"] is True:
                         new_entities.append(ESPSomfySunSwitch(controller=controller, data=shade))
-        except KeyError:
-            pass
+                elif "shadeType" in shade:
+                    match(shade["shadeType"]):
+                        case 3:
+                            new_entities.append(ESPSomfySunSwitch(controller=controller, data=shade))
+            except KeyError:
+                pass
 
-    for group in controller.api.groups:
-        try:
-            if "sunSensor" in group:
-                if group["sunSensor"] is True:
-                    new_entities.append(ESPSomfySunSwitch(controller=controller, data=group))
+        for group in controller.api.groups:
+            try:
+                if "sunSensor" in group:
+                    if group["sunSensor"] is True:
+                        new_entities.append(ESPSomfySunSwitch(controller=controller, data=group))
 
-        except KeyError:
-            pass
-
-
+            except KeyError:
+                pass
     if new_entities:
         async_add_entities(new_entities)
 

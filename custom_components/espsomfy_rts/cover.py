@@ -93,49 +93,50 @@ async def async_setup_entry(
     """Set up shades for the shade controller."""
     controller = hass.data[DOMAIN][config_entry.entry_id]
     new_shades = []
+    data = controller.api.get_config()
+    if("serverId" in data):
+        for shade in controller.api.shades:
+            try:
+                # We do not want any of the dry contacts here.
+                if "shadeType" in shade and not (int(shade["shadeType"]) == 9 or int(shade["shadeType"]) == 10):
+                    new_shades.append(ESPSomfyShade(controller, shade))
 
-    for shade in controller.api.shades:
-        try:
-            # We do not want any of the dry contacts here.
-            if "shadeType" in shade and not (int(shade["shadeType"]) == 9 or int(shade["shadeType"]) == 10):
-                new_shades.append(ESPSomfyShade(controller, shade))
+            except KeyError:
+                pass
+        if new_shades:
+            async_add_entities(new_shades)
 
-        except KeyError:
-            pass
-    if new_shades:
-        async_add_entities(new_shades)
-
-    new_groups = []
-    for group in controller.api.groups:
-        try:
-            new_groups.append(ESPSomfyGroup(hass=hass, controller=controller, data=group))
-        except KeyError:
-            pass
-    if new_groups:
-        async_add_entities(new_groups)
+        new_groups = []
+        for group in controller.api.groups:
+            try:
+                new_groups.append(ESPSomfyGroup(hass=hass, controller=controller, data=group))
+            except KeyError:
+                pass
+        if new_groups:
+            async_add_entities(new_groups)
 
 
-    platform = entity_platform.async_get_current_platform()
-    platform.async_register_entity_service(
-        SVC_SET_SHADE_POS,
-        POSITION_SERVICE_SCHEMA,
-        "async_set_cover_position",
-    )
-    platform.async_register_entity_service(
-        SVC_SET_TILT_POS,
-        TILT_POSITION_SERVICE_SCHEMA,
-        "async_set_cover_tilt_position",
-    )
-    platform.async_register_entity_service(SVC_OPEN_SHADE, {}, "async_open_cover")
-    platform.async_register_entity_service(SVC_CLOSE_SHADE, {}, "async_close_cover")
-    platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
-    platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_tilt_open")
-    platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
-    platform.async_register_entity_service(SVC_SET_CURRENT_POS, POSITION_SERVICE_SCHEMA, "async_set_current_position")
-    platform.async_register_entity_service(SVC_SET_CURRENT_TILT_POS, TILT_POSITION_SERVICE_SCHEMA, "async_set_current_tilt_position")
-    platform.async_register_entity_service(SVC_SET_SUNNY, SUNNY_SERVICE_SCHEMA, "async_set_sunny")
-    platform.async_register_entity_service(SVC_SET_WINDY, WINDY_SERVICE_SCHEMA, "async_set_windy")
-    platform.async_register_entity_service(SVC_SEND_COMMAND, SEND_COMMAND_SERVICE_SCHEMA, "async_send_command")
+        platform = entity_platform.async_get_current_platform()
+        platform.async_register_entity_service(
+            SVC_SET_SHADE_POS,
+            POSITION_SERVICE_SCHEMA,
+            "async_set_cover_position",
+        )
+        platform.async_register_entity_service(
+            SVC_SET_TILT_POS,
+            TILT_POSITION_SERVICE_SCHEMA,
+            "async_set_cover_tilt_position",
+        )
+        platform.async_register_entity_service(SVC_OPEN_SHADE, {}, "async_open_cover")
+        platform.async_register_entity_service(SVC_CLOSE_SHADE, {}, "async_close_cover")
+        platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
+        platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_tilt_open")
+        platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
+        platform.async_register_entity_service(SVC_SET_CURRENT_POS, POSITION_SERVICE_SCHEMA, "async_set_current_position")
+        platform.async_register_entity_service(SVC_SET_CURRENT_TILT_POS, TILT_POSITION_SERVICE_SCHEMA, "async_set_current_tilt_position")
+        platform.async_register_entity_service(SVC_SET_SUNNY, SUNNY_SERVICE_SCHEMA, "async_set_sunny")
+        platform.async_register_entity_service(SVC_SET_WINDY, WINDY_SERVICE_SCHEMA, "async_set_windy")
+        platform.async_register_entity_service(SVC_SEND_COMMAND, SEND_COMMAND_SERVICE_SCHEMA, "async_send_command")
 
 
 class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):

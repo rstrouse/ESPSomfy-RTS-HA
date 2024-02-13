@@ -22,32 +22,34 @@ async def async_setup_entry(
     """Set up shades for the shade controller."""
     controller = hass.data[DOMAIN][config_entry.entry_id]
     new_entities = []
-    for shade in controller.api.shades:
-        try:
-            if "sunSensor" in shade:
-                if shade["sunSensor"] is True:
-                    new_entities.append(ESPSomfySunSensor(controller, shade))
-                    new_entities.append(ESPSomfyWindSensor(controller, shade))
+    data = controller.api.get_config()
+    if("serverId" in data):
+        for shade in controller.api.shades:
+            try:
+                if "sunSensor" in shade:
+                    if shade["sunSensor"] is True:
+                        new_entities.append(ESPSomfySunSensor(controller, shade))
+                        new_entities.append(ESPSomfyWindSensor(controller, shade))
+                    elif "shadeType" in shade:
+                        match(shade["shadeType"]):
+                            case 3:
+                                new_entities.append(ESPSomfyWindSensor(controller, shade))
+
                 elif "shadeType" in shade:
                     match(shade["shadeType"]):
                         case 3:
+                            new_entities.append(ESPSomfySunSensor(controller, shade))
                             new_entities.append(ESPSomfyWindSensor(controller, shade))
-
-            elif "shadeType" in shade:
-                match(shade["shadeType"]):
-                    case 3:
-                        new_entities.append(ESPSomfySunSensor(controller, shade))
-                        new_entities.append(ESPSomfyWindSensor(controller, shade))
-        except KeyError:
-            pass
-    for group in controller.api.groups:
-        try:
-            if "sunSensor" in group:
-                if group["sunSensor"] is True:
-                    new_entities.append(ESPSomfySunSensor(controller, group))
-                    new_entities.append(ESPSomfyWindSensor(controller, group))
-        except KeyError:
-            pass
+            except KeyError:
+                pass
+        for group in controller.api.groups:
+            try:
+                if "sunSensor" in group:
+                    if group["sunSensor"] is True:
+                        new_entities.append(ESPSomfySunSensor(controller, group))
+                        new_entities.append(ESPSomfyWindSensor(controller, group))
+            except KeyError:
+                pass
     if new_entities:
         async_add_entities(new_entities)
 

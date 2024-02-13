@@ -91,7 +91,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     self.host = user_input.get(CONF_HOST, "")
 
-                api = ESPSomfyAPI(self.hass, user_input)
+                api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
                 await self.async_set_unique_id(api.server_id)
                 self._abort_if_unique_id_configured()

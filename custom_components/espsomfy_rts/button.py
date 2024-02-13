@@ -47,7 +47,7 @@ async def async_setup_entry(
     new_entities = []
     controller:ESPSomfyController = hass.data[DOMAIN][config_entry.entry_id]
     v = version_parse(controller.version)
-    if(v.major >= 2 and v.minor >= 3 and v.micro > 0):
+    if(v.major >= 2 and v.minor >= 3 and v.micro >= 0):
         new_entities.append(ESPSomfyButton(controller=controller, cfg=ESPSomfyButtonDescription(
             key="reboot",
             entity_category=EntityCategory.CONFIG,

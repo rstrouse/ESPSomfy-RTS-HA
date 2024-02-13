@@ -41,65 +41,66 @@ async def async_setup_entry(
     controller = hass.data[DOMAIN][config_entry.entry_id]
     new_entities = []
     data = controller.api.get_config()
-    if("chipModel" in data):
-        chip_model = "ESP32"
-        if(len(data["chipModel"])):
-            chip_model += "-"
-            chip_model += data["chipModel"]
-        new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-            key="chip_model",
-            entity_category=EntityCategory.DIAGNOSTIC,
-            name="Chip Type",
-            native_value=chip_model.upper(),
-            events={},
-            icon="mdi:cpu-32-bit"), data=data))
-    if("connType" in data):
-        new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-            key="conn_type",
-            entity_category=EntityCategory.DIAGNOSTIC,
-            name="Connection",
-            events={},
-            native_value=data["connType"],
-            icon="mdi:connection"), data=data))
-        if(data["connType"] == "Wifi"):
-            new_entities.append(ESPSomfyWifiStrengthSensor(controller, data))
+    if("serverId" in data):
+        if("chipModel" in data):
+            chip_model = "ESP32"
+            if(len(data["chipModel"])):
+                chip_model += "-"
+                chip_model += data["chipModel"]
             new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-                key="wifi_ssid",
+                key="chip_model",
                 entity_category=EntityCategory.DIAGNOSTIC,
-                name="Wifi SSID",
-                icon="mdi:wifi-cog",
-                events={EVT_WIFISTRENGTH: "ssid"}),
-                data=data))
+                name="Chip Type",
+                native_value=chip_model.upper(),
+                events={},
+                icon="mdi:cpu-32-bit"), data=data))
+        if("connType" in data):
             new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-                    key="wifi_channel",
+                key="conn_type",
+                entity_category=EntityCategory.DIAGNOSTIC,
+                name="Connection",
+                events={},
+                native_value=data["connType"],
+                icon="mdi:connection"), data=data))
+            if(data["connType"] == "Wifi"):
+                new_entities.append(ESPSomfyWifiStrengthSensor(controller, data))
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+                    key="wifi_ssid",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                    name="Wifi SSID",
+                    icon="mdi:wifi-cog",
+                    events={EVT_WIFISTRENGTH: "ssid"}),
+                    data=data))
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+                        key="wifi_channel",
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                        state_class=SensorStateClass.MEASUREMENT,
+                        name="Wifi Channel",
+                        icon="mdi:radio-tower",
+                        events={EVT_WIFISTRENGTH: "channel"}), data=data))
+            elif(data["connType"] == "Ethernet"):
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+                    key="eth_speed",
                     entity_category=EntityCategory.DIAGNOSTIC,
                     state_class=SensorStateClass.MEASUREMENT,
-                    name="Wifi Channel",
-                    icon="mdi:radio-tower",
-                    events={EVT_WIFISTRENGTH: "channel"}), data=data))
-        elif(data["connType"] == "Ethernet"):
-            new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-                key="eth_speed",
-                entity_category=EntityCategory.DIAGNOSTIC,
-                state_class=SensorStateClass.MEASUREMENT,
-                unit_of_measurement=UnitOfDataRate.MEGABYTES_PER_SECOND,
-                name="Connection Speed",
-                icon="mdi:lan-connect",
-                events={EVT_ETHERNET: "speed"}), data=data))
-            new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-                key="eth_full_duplex",
-                entity_category=EntityCategory.DIAGNOSTIC,
-                name="Full Duplex",
-                icon="mdi:sync",
-                events={EVT_ETHERNET: "fullduplex"}), data=data))
+                    unit_of_measurement=UnitOfDataRate.MEGABYTES_PER_SECOND,
+                    name="Connection Speed",
+                    icon="mdi:lan-connect",
+                    events={EVT_ETHERNET: "speed"}), data=data))
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+                    key="eth_full_duplex",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                    name="Full Duplex",
+                    icon="mdi:sync",
+                    events={EVT_ETHERNET: "fullduplex"}), data=data))
 
-    new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
-            key="ip_addresss",
-            entity_category=EntityCategory.DIAGNOSTIC,
-            name="IP Address",
-            icon="mdi:ip",
-            events={},
-            native_value=controller.api.get_data()["host"]), data=data))
+        new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+                key="ip_addresss",
+                entity_category=EntityCategory.DIAGNOSTIC,
+                name="IP Address",
+                icon="mdi:ip",
+                events={},
+                native_value=controller.api.get_data()["host"]), data=data))
     if new_entities:
         async_add_entities(new_entities)
 

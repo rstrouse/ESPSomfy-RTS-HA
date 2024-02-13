@@ -25,7 +25,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up ESPSomfy RTS update based on a config entry."""
     controller:ESPSomfyController = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([ESPSomfyRTSUpdateEntity(controller)])
+    data = controller.api.get_config()
+    if("serverId" in data):
+        async_add_entities([ESPSomfyRTSUpdateEntity(controller)])
 
 
 class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
