@@ -155,7 +155,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             server_id = self.zero_conf.properties.get("serverId", "")
             try:
-                api = ESPSomfyAPI(self.hass, user_input)
+                api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
 
                 await self.async_set_unique_id(api.server_id)
@@ -222,7 +222,7 @@ class ESPSomfyOptionsFlowHandler(config_entries.OptionsFlow):
             try:
                 if not is_host_valid(user_input[CONF_HOST]):
                     raise InvalidHost()
-                api = ESPSomfyAPI(self.hass, user_input)
+                api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
                 await api.login(
                     {
