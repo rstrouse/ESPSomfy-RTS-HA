@@ -40,11 +40,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        controller = hass.data[DOMAIN].pop(entry.entry_id)
+    controller:ESPSomfyController = hass.data[DOMAIN].get(entry.entry_id)
+    if controller is not None:
         await controller.ws_close()
-
-    return unload_ok
+        if(controller.api.is_configured):
+            if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+                hass.data[DOMAIN].pop(entry.entry_id)
+            return unload_ok
+    return True
 
 
 async def async_remove_config_entry_device(

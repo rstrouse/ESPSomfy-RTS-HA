@@ -95,7 +95,7 @@ class SocketListener(threading.Thread):
         """Cancel event stream and join the thread."""
         _LOGGER.debug("Stopping event thread")
         self._should_stop = True
-        if self.ws_app and self.connected:
+        if self.ws_app: # and self.connected:
             self.ws_app.close()
 
         _LOGGER.debug("Joining event thread")
@@ -628,7 +628,6 @@ class ESPSomfyAPI:
                 if self._config["authType"] > 0:
                     if self._config["permissions"] != 1:
                         self._needsKey = True
-
                 return await resp.json()
             _LOGGER.error(await resp.text())
             raise DiscoveryError(f"{url} - {await resp.text()}")
