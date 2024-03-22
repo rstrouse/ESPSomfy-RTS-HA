@@ -25,7 +25,7 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
         """Device info."""
         return DeviceInfo(
             identifiers={(DOMAIN, self.controller.unique_id)},
-            name="ESPSomfy RTS",
+            name=self.controller.device_name,
             manufacturer=MANUFACTURER,
             model=f"ESPSomfy RTS Integration {VERSION}",
             sw_version=self.controller.version,

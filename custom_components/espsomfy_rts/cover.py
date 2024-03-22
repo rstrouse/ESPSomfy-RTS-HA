@@ -162,7 +162,6 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
             for cover_id in self._linked_shade_ids:
                 if(entity.unique_id == f"{self._controller.unique_id}_{cover_id}"):
                     shade_ids.append(entity.entity_id)
-
         super().__init__(unique_id=uuid, name=data["name"], entities=shade_ids)
 
     async def async_added_to_hass(self) -> None:

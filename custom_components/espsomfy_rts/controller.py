@@ -57,8 +57,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-
+logging.getLogger("websocket").setLevel(logging.CRITICAL)
 
 class SocketListener(threading.Thread):
     """A listener of sockets."""
@@ -135,6 +134,7 @@ class SocketListener(threading.Thread):
             self.main_loop.run_in_executor(None, self.ws_begin)
             self._connect_timer = None
             self.connected = True
+
         except websocket.WebSocketAddressException:
             self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
             self._connect_timer.start()
@@ -213,6 +213,10 @@ class ESPSomfyController(DataUpdateCoordinator):
         self.config_entry_id = config_entry_id
         self.api = api
         self.ws_listener = None
+    @property
+    def device_name(self) ->str:
+        """Gets the device name from the host"""
+        return self.api.deviceName
 
     @property
     def server_id(self) -> str:
@@ -407,13 +411,11 @@ class ESPSomfyController(DataUpdateCoordinator):
 
     def ws_onerror(self, exception):
         """An error occurred on the socket connection"""
-        # print(exception)
         data = {"event": EVT_CONNECTED, "connected": False}
         self.async_set_updated_data(data=data)
 
     def ws_onclose(self):
         """The socket has been closed"""
-        # print("Websocket closed")
         data = {"event": EVT_CONNECTED, "connected": False}
         self.async_set_updated_data(data=data)
 
@@ -558,14 +560,23 @@ class ESPSomfyAPI:
         else:
             self._can_update = False
 
+    async def check_address(self, url) -> bool:
+        """Sends a head to a url to check if it exists"""
+        try:
+            async with self._session.get(url) as resp:
+                if resp.status == 200:
+                    return True
+                print(resp)
+        except:
+            pass
+        return False
 
     async def update_firmware(self, version) -> bool:
         url = f"{self._api_url}/downloadFirmware?ver={version}"
         async with self._session.get(url, headers=self._headers) as resp:
             if(resp.status == 200):
                 return True
-            else:
-                _LOGGER.error(await resp.text())
+            _LOGGER.error(await resp.text())
         return False
 
     async def create_backup(self) -> bool:
@@ -597,6 +608,46 @@ class ESPSomfyAPI:
                 f.append(file)
         f.sort(reverse=True)
         return f
+    def apply_data(self, data) -> None:
+        """Applies the returned data to the configuration"""
+        self.set_firmware(data)
+        self._config["serverId"] = data["serverId"]
+        self._config["model"] = data["model"]
+        if "chipModel" in data:
+            self._config["chipModel"] = data["chipModel"]
+        if "connType" in data:
+            self._config["connType"] = data["connType"]
+        if "checkForUpdate" in data:
+            self._config["checkForUpdate"] = data["checkForUpdate"]
+        if "rooms" in data:
+            self._config["rooms"] = data["rooms"]
+        elif "rooms" not in self._config:
+            self._config["rooms"] = []
+        if "shades" in data:
+            self._config["shades"] = data["shades"]
+        elif "shades" not in self._config:
+            self._config["shades"] = []
+        if "groups" in data:
+            self._config["groups"] = data["groups"]
+        elif "groups" not in self._config:
+            self._config["groups"] = []
+        if "hostname" in data:
+            self._config["hostname"] = data["hostname"]
+            self._deviceName = data["hostname"]
+        if "authType" in data:
+            self._config["authType"] = data["authType"]
+            self._canLogin = True
+        elif "authType" not in self._config:
+            self._config["authType"] = 0
+            self._canLogin = False
+        if "permissions" in data:
+            self._config["permissions"] = data["permissions"]
+        elif "permissions" not in self._config:
+            self._config["permissions"] = 1
+        self._needsKey = False
+        if self._config["authType"] > 0:
+            if self._config["permissions"] != 1:
+                self._needsKey = True
 
     async def discover(self) -> Any | None:
         """Discover the device on the network"""
@@ -604,31 +655,8 @@ class ESPSomfyAPI:
         async with self._session.get(url, headers=self._headers) as resp:
             if resp.status == 200:
                 data = await resp.json()
-                self.set_firmware(data)
-                self._config["serverId"] = data["serverId"]
-                self._config["model"] = data["model"]
-                self._config["shades"] = data["shades"]
-                if "hostname" in data:
-                    self._deviceName = data["hostname"]
-                if "groups" in data:
-                    self._config["groups"] = data["groups"]
-                else:
-                    self._config["groups"] = []
-                if "authType" in data:
-                    self._config["authType"] = data["authType"]
-                    self._canLogin = True
-                else:
-                    self._config["authType"] = 0
-                    self._canLogin = False
-                if "permissions" in data:
-                    self._config["permissions"] = data["permissions"]
-                else:
-                    self._config["permissions"] = 1
-                self._needsKey = False
-                if self._config["authType"] > 0:
-                    if self._config["permissions"] != 1:
-                        self._needsKey = True
-                return await resp.json()
+                self.apply_data(data)
+                return data
             _LOGGER.error(await resp.text())
             raise DiscoveryError(f"{url} - {await resp.text()}")
 
@@ -797,7 +825,8 @@ class ESPSomfyAPI:
             self._session = aiohttp_client.async_get_clientsession(self.hass)
             async with self._session.get(f"{self._api_url}{API_DISCOVERY}") as resp:
                 if resp.status == 200:
-                    self._config = await resp.json()
+                    data = await resp.json()
+                    self.apply_data(data)
                     entry = self.hass.config_entries.async_get_entry(self._config_entry_id)
                     if(self._configured == False):
                         _LOGGER.debug("ESPSomfy RTS Setting up entities")

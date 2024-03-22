@@ -103,8 +103,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     }
                 )
                 return self.async_create_entry(
-                    title=f"ESPSomfy RTS {api.server_id}",
-                    description=api.deviceName,
+                    title=api.deviceName,
+                    description=f"ESPSomfy RTS {api.server_id}",
                     data=user_input,
                 )
             except InvalidHost:

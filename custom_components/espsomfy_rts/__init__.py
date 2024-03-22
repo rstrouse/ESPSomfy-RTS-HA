@@ -5,6 +5,7 @@ from enum import IntFlag
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import DOMAIN, PLATFORMS
@@ -22,8 +23,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     api = ESPSomfyAPI(hass, entry.entry_id, entry.data)
     controller = ESPSomfyController(entry.entry_id, hass, api)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = controller
-    # await api.get_initial()
-
+    await api.get_initial()
+    if not api.is_configured:
+        raise ConfigEntryNotReady(
+            f"Could not find ESPSomfy RTS device with address {api.get_api_url()}"
+        )
+    entry.title = api.deviceName
     async def _async_ws_close(_: Event) -> None:
         await controller.ws_close()
 

@@ -42,6 +42,15 @@ async def async_setup_entry(
     new_entities = []
     data = controller.api.get_config()
     if("serverId" in data):
+        if("hostname" in data):
+            new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
+                key="host_name",
+                entity_category=EntityCategory.DIAGNOSTIC,
+                name="Hostname",
+                native_value=data["hostname"],
+                events={},
+                icon="mdi:tag-text"
+            ), data=data))
         if("chipModel" in data):
             chip_model = "ESP32"
             if(len(data["chipModel"])):
@@ -128,6 +137,7 @@ class ESPSomfyDiagSensor(ESPSomfyEntity, SensorEntity):
             evt = self.events[self._controller.data["event"]]
             if(evt in self._controller.data):
                 self._attr_native_value = self._controller.data[evt]
+                self._available = True
                 self.async_write_ha_state()
         elif(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
             self._available = bool(self._controller.data["connected"])
