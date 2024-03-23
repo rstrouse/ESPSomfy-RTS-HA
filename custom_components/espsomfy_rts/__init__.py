@@ -28,7 +28,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady(
             f"Could not find ESPSomfy RTS device with address {api.get_api_url()}"
         )
-    entry.title = api.deviceName
+
+    hass.config_entries.async_update_entry(entry, title=api.deviceName)
+    # entry.title = api.deviceName
     async def _async_ws_close(_: Event) -> None:
         await controller.ws_close()
 
