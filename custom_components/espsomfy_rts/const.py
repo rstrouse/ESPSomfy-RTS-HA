@@ -3,7 +3,7 @@
 from homeassistant.const import Platform
 
 
-VERSION = "v2.4.1"
+VERSION = "v2.4.2"
 DOMAIN = "espsomfy_rts"
 MANUFACTURER = "rstrouse"
 API_CONTROLLER = "/controller"
