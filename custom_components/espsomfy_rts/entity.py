@@ -24,6 +24,7 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
     def device_info(self) -> DeviceInfo | None:
         """Device info."""
         return DeviceInfo(
+            configuration_url=f"http://{self.controller.api.get_data()['host']}",
             identifiers={(DOMAIN, self.controller.unique_id)},
             name=self.controller.device_name,
             manufacturer=MANUFACTURER,
