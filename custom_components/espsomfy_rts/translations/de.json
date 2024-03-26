@@ -1,0 +1,74 @@
+{
+  "config": {
+    "abort": {
+      "no_devices_found": "Keine Geräte im Netzwerk gefunden.",
+      "single_instance_allowed": "Es ist nur eine Konfiguration möglich."
+    },
+    "error": {
+      "cannot_connect": "Verbindungsfehler",
+      "discovery_error": "ESPSomfy RTS nicht gefunden",
+      "invalid_host": "Hostname oder IP falsch",
+      "unknown": "Unbekannter Fehler",
+      "invalid_password": "Name oder Passwort falsch",
+      "invalid_pin": "PIN Fehler",
+      "login_error": "Login Fehler"
+    },
+    "step": {
+      "confirm": {
+        "init": {
+          "data": {
+            "host": "ESPSomfy RTS Hostname oder IP",
+            "username": "Name",
+            "password": "Passwort",
+            "pin": "PIN"
+          },
+          "title": "ESPSomfy RTS Konfiguration",
+          "description": "Geben Sie Ihre Daten ein."
+        }
+      },
+      "user": {
+        "data": {
+          "host": "ESPSomfy RTS Hostname oder IP",
+          "username": "Name",
+          "password": "Passwort",
+          "pin": "PIN"
+        },
+        "title": "ESPSomfy RTS Konfiguration",
+        "description": "Geben Sie Ihre Daten ein."
+      },
+      "zeroconf_confirm": {
+        "data": {
+          "host": "ESPSomfy RTS Hostname oder IP",
+          "username": "Name",
+          "password": "Passwort",
+          "pin": "PIN"
+        },
+        "title": "ESPSomfy RTS gefunden",
+        "description": "{model} mit Server ID {server_id} zu Home Assistant hinzufügen?"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Verbindungsfehler",
+      "discovery_error": "ESPSomfy RTS nicht gefunden",
+      "invalid_host": "Hostname oder IP falsch",
+      "unknown": "Unbekannter Fehler",
+      "invalid_password": "Name oder Passwort falsch",
+      "invalid_pin": "PIN Fehler",
+      "login_error": "Login Fehler"
+    },
+    "step": {
+      "init": {
+        "data": {
+          "host": "ESPSomfy RTS Hostname oder IP",
+          "username": "Name",
+          "password": "Passwort",
+          "pin": "PIN"
+        },
+        "title": "ESPSomfy RTS Konfiguration",
+        "description": "Geben Sie Ihre Daten ein."
+      }
+    }
+  }
+}
