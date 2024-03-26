@@ -429,6 +429,7 @@ class ESPSomfyAPI:
         self._host = data[CONF_HOST]
         self._sock_url = f"ws://{self._host}:8080"
         self._api_url = f"http://{self._host}:8081"
+        self._config_url = f"http://{self._host}"
         self._config: Any = {}
         self._session = async_get_clientsession(self.hass, verify_ssl=False)
         self._authType = 0
@@ -523,6 +524,9 @@ class ESPSomfyAPI:
     def get_api_url(self):
         """Get that url used for api reference"""
         return self._api_url
+
+    def get_config_url(self) -> str:
+        return self._config_url
 
     def get_config(self):
         """Return the initial config"""
