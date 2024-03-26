@@ -455,9 +455,10 @@ class ESPSomfyAPI:
         return []
 
     @property
-    def server_id(self) -> str:
+    def server_id(self) -> str | None:
         """Getter for the server id"""
-        return self._config["serverId"]
+        if "serverId" in self._config:
+            return self._config["serverId"]
 
     @property
     def version(self) -> str:
@@ -552,7 +553,11 @@ class ESPSomfyAPI:
             self._config["checkForUpdate"] = data["checkForUpdate"]
         if "inetAvailable" in data:
             self._config["inetAvailable"] = data["inetAvailable"]
-
+        if cver != new_ver:
+            # print(f"Version: {cver} to {new_ver}")
+            dev_registry = device_registry.async_get(self.hass)
+            if dev := dev_registry.async_get_device(identifiers={(DOMAIN, f"espsomfy_{self.server_id}")}):
+                dev_registry.async_update_device(dev.id, sw_version=new_ver)
         self._config["version"] = new_ver
         v = version_parse(new_ver)
         if (v.major > 2) or (v.major == 2 and v.minor > 2) or (v.major == 2 and v.minor == 2 and v.micro > 0):
@@ -610,7 +615,6 @@ class ESPSomfyAPI:
         return f
     def apply_data(self, data) -> None:
         """Applies the returned data to the configuration"""
-        self.set_firmware(data)
         self._config["serverId"] = data["serverId"]
         self._config["model"] = data["model"]
         if "chipModel" in data:
@@ -648,6 +652,8 @@ class ESPSomfyAPI:
         if self._config["authType"] > 0:
             if self._config["permissions"] != 1:
                 self._needsKey = True
+        self.set_firmware(data)
+
 
     async def discover(self) -> Any | None:
         """Discover the device on the network"""
