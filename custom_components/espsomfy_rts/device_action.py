@@ -23,13 +23,13 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import get_capability
 from homeassistant.helpers.typing import ConfigType, TemplateVarsType
 
-from . import DOMAIN, const
+from .const import API_RESTORE, ATTR_RESTOREFILE, DOMAIN, ATTR_AVAILABLE_MODES
 
 RESTORE_SCHEMA = cv.DEVICE_ACTION_BASE_SCHEMA.extend(
     {
         vol.Required(CONF_TYPE): "restore",
         vol.Required(CONF_ENTITY_ID): cv.entity_id_or_uuid,
-        vol.Required(const.ATTR_RESTOREFILE): vol.Coerce(int),
+        vol.Required(ATTR_RESTOREFILE): vol.Coerce(int),
     }
 )
 
@@ -88,7 +88,7 @@ async def async_call_action_from_config(
     # print(service_data)
     # print(config)
     if config[CONF_TYPE] == "restore":
-        service = const.API_RESTORE
+        service = API_RESTORE
     elif config[CONF_TYPE] == "Backup":
         await hass.services.async_call(
                 DOMAIN,
@@ -129,14 +129,14 @@ async def async_get_action_capabilities(
     action_type = config[CONF_TYPE]
     fields = {}
     if action_type == "restore":
-        fields[vol.Required(const.ATTR_RESTOREFILE)] = vol.Required()
+        fields[vol.Required(ATTR_RESTOREFILE)] = vol.Required()
     elif action_type == "backup":
         try:
             entry = async_get_entity_registry_entry_or_raise(
                 hass, config[CONF_ENTITY_ID]
             )
             available_modes = (
-                get_capability(hass, entry.entity_id, const.ATTR_AVAILABLE_MODES) or []
+                get_capability(hass, entry.entity_id, ATTR_AVAILABLE_MODES) or []
             )
         except HomeAssistantError:
             available_modes = []

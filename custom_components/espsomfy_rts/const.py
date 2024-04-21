@@ -32,6 +32,7 @@ EVT_WIFISTRENGTH = "wifiStrength"
 EVT_ETHERNET = "ethernet"
 
 ATTR_RESTOREFILE = "Restore File"
+ATTR_AVAILABLE_MODES = "???"
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
