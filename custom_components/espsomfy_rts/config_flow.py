@@ -1,13 +1,14 @@
 """Config flow for ESPSomfy RTS."""
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 
 import voluptuous as vol
-
+import logging 
 from homeassistant import config_entries
 from homeassistant.components import zeroconf
-from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD, CONF_PIN
+from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD, CONF_PIN, CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 
 
@@ -37,6 +38,7 @@ DATA_SCHEMA = vol.Schema(
     }
 )
 
+_LOGGER = logging.getLogger(__name__)
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.
@@ -61,8 +63,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize."""
-        self.controller: ESPSomfyController = None
-        self.zero_conf = None
+        self.controller: ESPSomfyController
+        self.zero_conf: zeroconf.ZeroconfServiceInfo
         self.server_id = None
         self.host = None
 
@@ -122,72 +124,41 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle zeroconf discovery."""
         self.zero_conf = discovery_info
-        # Do not probe the device if the host is already configured
-        self._async_abort_entries_match({CONF_HOST: discovery_info.host})
 
         # Check if already configured
         self.server_id = discovery_info.properties.get("serverId", "")
-        await self.async_set_unique_id(f"espsomfy_{self.server_id}")
+        await self.async_set_unique_id(self.server_id)
         self.host = discovery_info.host
-        self._abort_if_unique_id_configured()
+        self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.host})
         self.context.update(
             {
                 "title_placeholders": {
-                    "name": f"{discovery_info.hostname}",
-                    "server_id": self.server_id,
+                    CONF_NAME: discovery_info.hostname,
+                    CONF_HOST: discovery_info.host,
                     "model": discovery_info.properties.get("model", ""),
+                    "configuration_url": f"http://{discovery_info.host}"
                 },
             }
         )
         return await self.async_step_zeroconf_confirm()
-
+    
     async def async_step_zeroconf_confirm(
-        self, user_input: dict[str, Any] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle a flow initiated by zeroconf."""
-        errors = {}
-        data = {
-            "server_id": self.server_id,
-            CONF_HOST: self.zero_conf.host,
-            "model": self.zero_conf.properties.get("model", ""),
-        }
-
         if user_input is not None:
-            server_id = self.zero_conf.properties.get("serverId", "")
-            try:
-                api = ESPSomfyAPI(self.hass, 0, user_input)
-                await api.discover()
-
-                await self.async_set_unique_id(api.server_id)
-                self._abort_if_unique_id_configured()
-                await api.login(
-                    {
-                        "username": user_input.get(CONF_USERNAME, ""),
-                        "password": user_input.get(CONF_PASSWORD, ""),
-                        "pin": user_input.get(CONF_PIN, ""),
-                    }
-                )
-                return self.async_create_entry(
-                    title=api.deviceName,
-                    data=user_input,
-                )
-            except InvalidHost:
-                errors[CONF_HOST] = "wrong_host"
-            except ConnectionError:
-                errors["base"] = "cannot_connect"
-            except DiscoveryError:
-                errors[CONF_HOST] = "discovery_error"
-            except LoginError as ex:
-                errors[ex.args[0]] = ex.args[1]
+            return self.async_create_entry(
+                title=self.zero_conf.hostname,
+                data={
+                    CONF_HOST: self.zero_conf.host,
+                },
+            )
 
         return self.async_show_form(
             step_id="zeroconf_confirm",
-            data_schema=_get_data_schema(
-                self.hass, data=data, host=self.zero_conf.host
-            ),
             description_placeholders={
-                "server_id": self.zero_conf.properties.get("serverId", ""),
-                "model": self.zero_conf.properties.get("model", ""),
+                CONF_NAME: self.zero_conf.hostname,
+                "model": self.zero_conf.model,
             },
         )
 
