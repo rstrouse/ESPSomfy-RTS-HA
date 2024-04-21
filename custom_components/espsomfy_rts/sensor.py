@@ -10,7 +10,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .entity import ESPSomfyEntity
 from .controller import ESPSomfyController
-from .const import DOMAIN, EVT_ETHERNET, EVT_WIFISTRENGTH, EVT_CONNECTED
+from .const import DOMAIN, EVT_ETHERNET, EVT_WIFISTRENGTH, EVT_CONNECTED, EVT_MEMSTATUS
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
@@ -19,8 +19,8 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
-    UnitOfDataRate
-
+    UnitOfDataRate,
+    UnitOfInformation
 )
 
 @dataclass
@@ -102,6 +102,36 @@ async def async_setup_entry(
                     name="Full Duplex",
                     icon="mdi:sync",
                     events={EVT_ETHERNET: "fullduplex"}), data=data))
+        if("memory" in data):
+            mem = data["memory"]
+            if("free" in mem):
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg = ESPSomfyDiagSensorDescription(
+                    key="free_memory",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                    name="Free Memory",
+                    icon="mdi:memory",
+                    unit_of_measurement=UnitOfInformation.BYTES,
+                    native_value=mem["free"],
+                    events={EVT_MEMSTATUS: "free"}), data=data))
+            if("max" in mem):
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg = ESPSomfyDiagSensorDescription(
+                    key="max_memory",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                    name="Max Memory",
+                    icon="mdi:memory",
+                    unit_of_measurement=UnitOfInformation.BYTES,
+                    native_value=mem["max"],
+                    events={EVT_MEMSTATUS: "max"}), data=data))
+            if("min" in mem):
+                new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg = ESPSomfyDiagSensorDescription(
+                    key="min_memory",
+                    entity_category=EntityCategory.DIAGNOSTIC,
+                    name="Min Memory",
+                    icon="mdi:memory",
+                    unit_of_measurement=UnitOfInformation.BYTES,
+                    native_value=mem["min"],
+                    events={EVT_MEMSTATUS: "min"}), data=data))
+
 
         new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg=ESPSomfyDiagSensorDescription(
                 key="ip_addresss",

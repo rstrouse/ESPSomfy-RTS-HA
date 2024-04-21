@@ -52,6 +52,7 @@ from .const import (
     EVT_UPDPROGRESS,
     EVT_WIFISTRENGTH,
     EVT_ETHERNET,
+    EVT_MEMSTATUS,
     PLATFORMS,
 
 )
@@ -277,7 +278,7 @@ class ESPSomfyController(DataUpdateCoordinator):
             self.ws_onerror,
         )
         self.ws_listener.set_filter(
-            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_WIFISTRENGTH, EVT_ETHERNET]
+            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_WIFISTRENGTH, EVT_ETHERNET, EVT_MEMSTATUS]
         )
         await self.ws_listener.connect()
     async def create_backup(self) -> bool:
@@ -652,6 +653,8 @@ class ESPSomfyAPI:
             self._config["permissions"] = data["permissions"]
         elif "permissions" not in self._config:
             self._config["permissions"] = 1
+        if "memory" in data:
+            self._config["memory"] = data["memory"]
         self._needsKey = False
         if self._config["authType"] > 0:
             if self._config["permissions"] != 1:
@@ -777,6 +780,7 @@ class ESPSomfyAPI:
 
     async def put_command(self, command, data):
         """Sends a put command to the device"""
+        #print(f"Sending: {self._api_url}{command}")
         async with self._session.put(
             f"{self._api_url}{command}", json=data) as resp:
             if resp.status == 200:
