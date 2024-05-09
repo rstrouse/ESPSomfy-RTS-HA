@@ -5,7 +5,7 @@ import dataclasses
 from typing import Any
 
 import voluptuous as vol
-import logging 
+import logging
 from homeassistant import config_entries
 from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD, CONF_PIN, CONF_NAME
@@ -141,7 +141,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
         return await self.async_step_zeroconf_confirm()
-    
+
     async def async_step_zeroconf_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -158,7 +158,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="zeroconf_confirm",
             description_placeholders={
                 CONF_NAME: self.zero_conf.hostname,
-                "model": self.zero_conf.model,
+                "model": self.zero_conf.properties.get("model", ""),
             },
         )
 
