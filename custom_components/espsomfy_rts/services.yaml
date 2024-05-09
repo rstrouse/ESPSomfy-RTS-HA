@@ -169,7 +169,34 @@ send_command:
               - "StepDown"
               - "Flag"
               - "SunFlag"
+              - "Favorite"
+              - "Stop"
           mode: dropdown
+send_step_command:
+  name: Send Step command
+  description: Send a step command with a step size
+  target:
+    entity:
+      integration: espsomfy_rts
+      domain: cover
+  fields:
+    direction:
+      required: true
+      name: Direction
+      description: The direction that the motor will step
+      selector:
+        select:
+          options:
+            - "Up"
+            - "Down"
+    step_size:
+      required: true
+      name: Step Size
+      description: The size of the step with 127 being the largest step
+      selector:
+        number:
+          min: 1
+          max: 127
 
 reboot:
   name: Reboot
