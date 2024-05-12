@@ -633,7 +633,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_send_command(self, **kwargs:Any) -> None:
         """Sends raw command from SVC"""
-        await self._controller.api.raw_command(self._shade_id, kwargs[ATTR_COMMAND])
+        await self._controller.api.raw_command(self._shade_id, kwargs[ATTR_COMMAND], kwargs[ATTR_REPEAT])
 
     async def async_send_step_command(self, **kwargs:Any) -> None:
         await self._controller.api.shade_command({"shadeId": self._shade_id, "command": f"Step{kwargs[ATTR_DIRECTION]}", "stepSize": kwargs[ATTR_STEP_SIZE]})
