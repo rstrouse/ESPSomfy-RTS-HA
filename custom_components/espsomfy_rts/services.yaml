@@ -172,6 +172,15 @@ send_command:
               - "Favorite"
               - "Stop"
           mode: dropdown
+    repeat:
+      required: true
+      name: Repeat
+      description: Number of time the command will be sent
+      selector:
+        number:
+          min: 1
+          max: 50
+      default: 1
 send_step_command:
   name: Send Step command
   description: Send a step command with a step size

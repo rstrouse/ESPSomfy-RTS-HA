@@ -50,6 +50,7 @@ ATTR_WINDY = "windy"
 ATTR_STEP_SIZE = "step_size"
 ATTR_COMMAND = "command"
 ATTR_DIRECTION = "direction"
+ATTR_REPEAT = "repeat"
 
 ALLOWED_COMMAND = [
     "Up",
@@ -86,7 +87,7 @@ WINDY_SERVICE_SCHEMA: Final = make_entity_service_schema(
     {vol.Required(ATTR_WINDY): vol.All(vol.Coerce(bool))}
 )
 SEND_COMMAND_SERVICE_SCHEMA: Final = make_entity_service_schema(
-    {vol.Required(ATTR_COMMAND): vol.In(ALLOWED_COMMAND)}
+    {vol.Required(ATTR_COMMAND): vol.In(ALLOWED_COMMAND), vol.Required(ATTR_REPEAT): vol.Range(min=1, max=50)}
 )
 SEND_STEP_COMMAND_SERVICE_SCHEMA: Final = make_entity_service_schema(
     {vol.Required(ATTR_DIRECTION): vol.In(["Up", "Down"]), vol.Required(ATTR_STEP_SIZE): vol.Range(min=1, max=127)}
@@ -632,7 +633,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_send_command(self, **kwargs:Any) -> None:
         """Sends raw command from SVC"""
-        await self._controller.api.raw_command(self._shade_id, kwargs[ATTR_COMMAND])
+        await self._controller.api.raw_command(self._shade_id, kwargs[ATTR_COMMAND], kwargs[ATTR_REPEAT])
 
     async def async_send_step_command(self, **kwargs:Any) -> None:
         await self._controller.api.shade_command({"shadeId": self._shade_id, "command": f"Step{kwargs[ATTR_DIRECTION]}", "stepSize": kwargs[ATTR_STEP_SIZE]})

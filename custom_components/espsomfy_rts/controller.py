@@ -753,9 +753,9 @@ class ESPSomfyAPI:
         #print(f"POS ShadeId:{shade_id} Target:{position}")
         await self.shade_command({"shadeId": shade_id, "target": position})
 
-    async def raw_command(self, shade_id: int, command: str):
+    async def raw_command(self, shade_id: int, command: str, repeat: int):
         """Send the command to the shade"""
-        await self.shade_command({"shadeId": shade_id, "command": command})
+        await self.shade_command({"shadeId": shade_id, "command": command, "repeat": repeat})
 
     async def shade_command(self, data):
         """Send commands to ESPSomfyRTS via PUT request"""
@@ -776,7 +776,6 @@ class ESPSomfyAPI:
     async def set_windy(self, shade_id:int, windy:bool):
         """Set the windy condition for the motor"""
         await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "windy": windy})
-
 
     async def put_command(self, command, data):
         """Sends a put command to the device"""
