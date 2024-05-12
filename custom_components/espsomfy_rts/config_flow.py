@@ -129,11 +129,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.server_id = discovery_info.properties.get("serverId", "")
         # This was part of PR#54 and was incorrect the server id is simply the chip id of the ESP32 but could
         # be replicated by other items.  If this server id is already configured then we do not want
-        # to add the device again.
+        # to add the device again.  Since the unique id contains the server id this will always be the same
+        # as identified by the chip id on the ESP32.
         #await self.async_set_unique_id(f"{self.server_id}")
         await self.async_set_unique_id(f"espsomfy_{self.server_id}")
         self.host = discovery_info.host
         self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.host})
+
         self.context.update(
             {
                 "title_placeholders": {
@@ -163,6 +165,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 CONF_NAME: self.zero_conf.hostname,
                 "model": self.zero_conf.properties.get("model", ""),
+                "server_id": self.server_id,
             },
         )
 
