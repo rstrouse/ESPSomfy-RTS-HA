@@ -87,10 +87,10 @@ WINDY_SERVICE_SCHEMA: Final = make_entity_service_schema(
     {vol.Required(ATTR_WINDY): vol.All(vol.Coerce(bool))}
 )
 SEND_COMMAND_SERVICE_SCHEMA: Final = make_entity_service_schema(
-    {vol.Required(ATTR_COMMAND): vol.In(ALLOWED_COMMAND), vol.Required(ATTR_REPEAT): vol.Range(min=1, max=50)}
+    {vol.Required(ATTR_COMMAND): vol.In(ALLOWED_COMMAND), vol.Optional(ATTR_REPEAT): vol.Range(min=0, max=50)}
 )
 SEND_STEP_COMMAND_SERVICE_SCHEMA: Final = make_entity_service_schema(
-    {vol.Required(ATTR_DIRECTION): vol.In(["Up", "Down"]), vol.Required(ATTR_STEP_SIZE): vol.Range(min=1, max=127)}
+    {vol.Required(ATTR_DIRECTION): vol.In(["Up", "Down"]), vol.Required(ATTR_STEP_SIZE): vol.Range(min=1, max=127), vol.Optional(ATTR_REPEAT): vol.Range(min=0, max=50)}
 )
 
 async def async_setup_entry(
@@ -257,10 +257,17 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
 
     async def async_send_command(self, **kwargs:Any) -> None:
         """Sends raw command from SVC"""
-        await self._controller.api.group_command({"groupId": self._group_id, "command": kwargs[ATTR_COMMAND]})
+        cmd = {"groupId": self._group_id, "command": kwargs[ATTR_COMMAND]}
+        if(ATTR_REPEAT in kwargs):
+            cmd[ATTR_REPEAT] = kwargs[ATTR_REPEAT]
+        await self._controller.api.group_command(cmd)
 
     async def async_send_step_command(self, **kwargs:Any) -> None:
-        await self._controller.api.group_command({"groupdId": self._group_id, "command": f"Step{kwargs[ATTR_DIRECTION]}", "stepSize": kwargs[ATTR_STEP_SIZE]})
+        """Sends a raw step command from the service"""
+        cmd = {"groupId": self._group_id, "command": f"Step{kwargs[ATTR_DIRECTION]}", "stepSize": kwargs[ATTR_STEP_SIZE]}
+        if(ATTR_REPEAT in kwargs):
+            cmd[ATTR_REPEAT] = kwargs[ATTR_REPEAT]
+        await self._controller.api.group_command(cmd)
 
 class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     """A shade that is associated with a controller"""
@@ -633,8 +640,13 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     async def async_send_command(self, **kwargs:Any) -> None:
         """Sends raw command from SVC"""
-        await self._controller.api.raw_command(self._shade_id, kwargs[ATTR_COMMAND], kwargs[ATTR_REPEAT])
+        cmd = {"shadeId": self._shade_id, "command": kwargs[ATTR_COMMAND]}
+        if(ATTR_REPEAT in kwargs):
+            cmd[ATTR_REPEAT] = kwargs[ATTR_REPEAT]
+        await self._controller.api.shade_command(cmd)
 
     async def async_send_step_command(self, **kwargs:Any) -> None:
-        await self._controller.api.shade_command({"shadeId": self._shade_id, "command": f"Step{kwargs[ATTR_DIRECTION]}", "stepSize": kwargs[ATTR_STEP_SIZE]})
-        #await self._controller.api.raw_step_command(self._shade_id, kwargs[ATTR_DIRECTION], kwargs[ATTR_STEP_SIZE])
+        cmd = {"shadeId": self._shade_id, "command": f"Step{kwargs[ATTR_DIRECTION]}", "stepSize": kwargs[ATTR_STEP_SIZE]}
+        if(ATTR_REPEAT in kwargs):
+            cmd[ATTR_REPEAT] = kwargs[ATTR_REPEAT]
+        await self._controller.api.shade_command(cmd)

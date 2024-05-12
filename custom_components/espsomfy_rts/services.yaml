@@ -173,14 +173,13 @@ send_command:
               - "Stop"
           mode: dropdown
     repeat:
-      required: true
+      required: false
       name: Repeat
-      description: Number of time the command will be sent
+      description: Number of times the command will be repeated
       selector:
         number:
-          min: 1
+          min: 0
           max: 50
-      default: 1
 send_step_command:
   name: Send Step command
   description: Send a step command with a step size
@@ -206,7 +205,15 @@ send_step_command:
         number:
           min: 1
           max: 127
-
+      default: 1
+    repeat:
+      required: false
+      name: Repeat
+      description: Number of times the command will be repeated
+      selector:
+        number:
+          min: 0
+          max: 50
 reboot:
   name: Reboot
   description: Reboot the ESPSomfy Device

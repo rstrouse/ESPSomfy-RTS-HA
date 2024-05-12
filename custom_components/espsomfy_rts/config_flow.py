@@ -95,7 +95,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
-                await self.async_set_unique_id(api.server_id)
+                await self.async_set_unique_id(f"espsomfy_{api.server_id}")
                 self._abort_if_unique_id_configured()
                 await api.login(
                     {
@@ -127,7 +127,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if already configured
         self.server_id = discovery_info.properties.get("serverId", "")
-        await self.async_set_unique_id(self.server_id)
+        # This was part of PR#54 and was incorrect the server id is simply the chip id of the ESP32 but could
+        # be replicated by other items.  If this server id is already configured then we do not want
+        # to add the device again.
+        #await self.async_set_unique_id(f"{self.server_id}")
+        await self.async_set_unique_id(f"espsomfy_{self.server_id}")
         self.host = discovery_info.host
         self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.host})
         self.context.update(
