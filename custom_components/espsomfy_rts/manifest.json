@@ -3,7 +3,7 @@
   "name": "ESPSomfy RTS",
   "config_flow": true,
   "documentation": "https://github.com/rstrouse/ESPSomfy-RTS/wiki/Configuring-the-Software",
-  "requirements": ["websocket-client==1.7.0"],
+  "requirements": ["websocket-client>=1.8.0"],
   "ssdp": [
     {
       "deviceType": "urn:schemas-rstrouse-org:device:ESPSomfyRTS:1"

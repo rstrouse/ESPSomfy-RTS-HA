@@ -138,8 +138,8 @@ async def async_setup_entry(
         platform.async_register_entity_service(SVC_OPEN_SHADE, {}, "async_open_cover")
         platform.async_register_entity_service(SVC_CLOSE_SHADE, {}, "async_close_cover")
         platform.async_register_entity_service(SVC_STOP_SHADE, {}, "async_stop_cover")
-        platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_tilt_open")
-        platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_tilt_close")
+        platform.async_register_entity_service(SVC_TILT_OPEN, {}, "async_open_cover_tilt")
+        platform.async_register_entity_service(SVC_TILT_CLOSE, {}, "async_close_cover_tilt")
         platform.async_register_entity_service(SVC_SET_CURRENT_POS, POSITION_SERVICE_SCHEMA, "async_set_current_position")
         platform.async_register_entity_service(SVC_SET_CURRENT_TILT_POS, TILT_POSITION_SERVICE_SCHEMA, "async_set_current_tilt_position")
         platform.async_register_entity_service(SVC_SET_SUNNY, SUNNY_SERVICE_SCHEMA, "async_set_sunny")
@@ -550,11 +550,18 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             )
     async def async_open_cover_tilt(self, **kwargs: Any) -> None:
         """Open the tilt position"""
-        await self._controller.api.tilt_open(self._shade_id)
+        if self._flip_position is True:
+            await self._controller.api.position_tilt(self._shade_id, 100)
+        else:
+            await self._controller.api.position_tilt(self._shade_id, 0)
+
 
     async def async_close_cover_tilt(self, **kwargs: Any) -> None:
         """Close the tilt position"""
-        await self._controller.api.tilt_close(self._shade_id)
+        if self._flip_position is True:
+            await self._controller.api.position_tilt(self._shade_id, 0)
+        else:
+            await self._controller.api.position_tilt(self._shade_id, 100)
 
     async def async_stop_cover_tilt(self, **kwargs: Any) -> None:
         """Stop tilting a tilt only shade"""
