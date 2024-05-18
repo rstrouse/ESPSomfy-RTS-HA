@@ -12,7 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, EVT_FWSTATUS, EVT_UPDPROGRESS
+from .const import DOMAIN, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_CONNECTED
 from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
 
@@ -40,6 +40,7 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     def __init__(self, controller: ESPSomfyController) -> None:
         """Initialize the update entity."""
         self._controller = controller
+        self._available = True
         self._attr_name = f"Firmware Update"
         self._attr_unique_id = f"update_{controller.unique_id}"
         self._update_status = 0
@@ -55,7 +56,10 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if(self._controller.data["event"] == EVT_FWSTATUS):
+        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+            self._available = bool(self._controller.data["connected"])
+            self.async_write_ha_state()
+        elif(self._controller.data["event"] == EVT_FWSTATUS):
             if self._controller.check_for_update and self._controller.internet_available:
                 self._attr_supported_features = (
                     UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
@@ -74,6 +78,11 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
                     self._app_progress = (int(d["loaded"])/int(d["total"])) * 100
                 self._total_progress = int((self._fw_progress + self._app_progress)/ 2)
                 self.async_write_ha_state()
+    @property
+    def available(self) -> bool:
+        """Indicates whether the shade is available"""
+        return self._available
+
     @property
     def can_install(self) -> bool:
         """Indicates whether the current version supports firmware installation"""

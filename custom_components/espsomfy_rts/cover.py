@@ -15,14 +15,13 @@ from homeassistant.components.cover import (
 )
 from homeassistant.components.group.cover import CoverGroup
 from homeassistant.config_entries import (ConfigEntry, ConfigEntries)
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers import entity_platform, entity_registry
 from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
-
 
 from .const import DOMAIN, EVT_CONNECTED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND
 from .controller import ESPSomfyController
@@ -202,7 +201,13 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
         # self._entities = shade_ids
         self._attr_extra_state_attributes = {ATTR_ENTITY_ID: shade_ids}
         await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.async_add_listener(
+                self._handle_coordinator_update, self.coordinator_context
+            )
+        )
 
+    @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
