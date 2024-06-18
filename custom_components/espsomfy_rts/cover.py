@@ -293,6 +293,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._flip_position = False
         self._tilt_type = 0
         self._state_attributes: dict[str, Any] = dict([])
+        self._shade_type = 1
 
         if "flipPosition" in data and data["flipPosition"] is True:
             self._flip_position = True
@@ -336,6 +337,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     )
 
         if "shadeType" in data:
+            self._shade_type = int(data["shadeType"])
             match int(data["shadeType"]):
                 case 1:
                     self._attr_device_class = CoverDeviceClass.BLIND
@@ -347,6 +349,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     self._attr_device_class = CoverDeviceClass.SHUTTER
                 case 5:
                     self._attr_device_class = CoverDeviceClass.GARAGE
+                    self._attr_supported_features = (
+                        CoverEntityFeature.STOP
+                    )
+
                 case 6:
                     self._attr_device_class = CoverDeviceClass.GARAGE
                 case 11 | 12 | 13:
@@ -361,8 +367,9 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
-            self._available = bool(self._controller.data["connected"])
-            self.async_write_ha_state()
+            if self._available != bool(self._controller.data["connected"]):
+                self._available = bool(self._controller.data["connected"])
+                self.async_write_ha_state()
         elif "shadeId" in self._controller.data:
             if self._controller.data["shadeId"] == self._shade_id:
                 if self._controller.data["event"] == EVT_SHADESTATE:
@@ -599,7 +606,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         # This is ridiculous in that we need to invert these
         # if the type is an awning.
         #print(f"Opening Cover id#{self._shade_id} {self._attr_device_class}")
-        if self._attr_device_class == CoverDeviceClass.AWNING:
+        if(self._shade_type == 5):
+            if(self._direction == 0 or self._direction == 1):
+                await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
+        elif self._attr_device_class == CoverDeviceClass.AWNING:
             await self._controller.api.close_shade(self._shade_id)
         else:
             await self._controller.api.open_shade(self._shade_id)
@@ -607,7 +617,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close cover."""
         #print(f"Closing Cover id#{self._shade_id} {self._attr_device_class}")
-        if self._attr_device_class == CoverDeviceClass.AWNING:
+        if(self._shade_type == 5):
+            if(self._direction == 0 or self._direction == -1):
+                await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
+        elif self._attr_device_class == CoverDeviceClass.AWNING:
             await self._controller.api.open_shade(self._shade_id)
         else:
             await self._controller.api.close_shade(self._shade_id)
@@ -615,7 +628,11 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Hold cover."""
         # print(f"Stopping Cover id#{self._shade_id}")
-        await self._controller.api.stop_shade(self._shade_id)
+        if(self._shade_type == 5):
+            if(self.is_opening or self.is_closing):
+                await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
+        else:
+            await self._controller.api.stop_shade(self._shade_id)
 
     async def async_set_current_position(self, **kwargs: Any) -> None:
         """Sets the current position for the device without moving it"""

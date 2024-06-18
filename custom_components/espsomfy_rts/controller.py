@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from enum import IntFlag
+from datetime import timedelta
 import json
 import logging
 import threading
@@ -157,7 +158,7 @@ class SocketListener(threading.Thread):
 
     def ws_begin(self) -> None:
         """Begin running the thread"""
-        self.running_future = self.ws_app.run_forever(ping_interval=25, ping_timeout=20)
+        self.running_future = self.ws_app.run_forever(ping_interval=10, ping_timeout=7)
         # print("Fell out of run_runforever")
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.reconnect)
@@ -211,6 +212,8 @@ class ESPSomfyController(DataUpdateCoordinator):
             _LOGGER,
             # Name of the data. For logging purposes.
             name=DOMAIN,
+            # The setting below is only for polling.
+            # update_interval=timedelta(seconds=5),
         )
         self.config_entry_id = config_entry_id
         self.api = api
@@ -284,10 +287,19 @@ class ESPSomfyController(DataUpdateCoordinator):
         await self.ws_listener.connect()
 
     async def create_backup(self) -> bool:
+        """Creates a backup of the configuration and stores it in HA"""
         return await self.api.create_backup()
 
     async def update_firmware(self, version) -> bool:
+        """Starts the firmware update process"""
         return await self.api.update_firmware(version)
+
+    async def set_host(self, host) -> None:
+        """Sets a host name and reloads the sockets if the host has changed"""
+        if self.api._host != host:
+            # Tear down the socket
+            self.api.set_host(host)
+            self.ws_connect()
 
     def ensure_group_configured(self, data):
         """Ensures the group exists on Home Assistant"""
@@ -429,10 +441,7 @@ class ESPSomfyAPI:
     def __init__(self, hass: HomeAssistant, config_entry_id, data) -> None:
         self.hass = hass
         self.data = data
-        self._host = data[CONF_HOST]
-        self._sock_url = f"ws://{self._host}:8080"
-        self._api_url = f"http://{self._host}:8081"
-        self._config_url = f"http://{self._host}"
+        self.set_host(data[CONF_HOST])
         self._config: Any = {}
         self._session = async_get_clientsession(self.hass, verify_ssl=False)
         self._authType = 0
@@ -520,6 +529,13 @@ class ESPSomfyAPI:
         """Indicates whether the integration has been configured"""
         return self._configured
 
+    def set_host(self, host) -> None:
+        """Sets the host for the integration"""
+        self._host = host
+        self._sock_url = f"ws://{self._host}:8080"
+        self._api_url = f"http://{self._host}:8081"
+        self._config_url = f"http://{self._host}"
+
     def get_sock_url(self):
         """Get the socket interface url"""
         return self._sock_url
@@ -571,6 +587,8 @@ class ESPSomfyAPI:
             self._can_update = True
         else:
             self._can_update = False
+
+
 
     async def check_address(self, url) -> bool:
         """Sends a head to a url to check if it exists"""

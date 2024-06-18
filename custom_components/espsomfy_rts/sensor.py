@@ -1,6 +1,7 @@
 """Sensors related to ESPSomfy-RTS-HA"""
 from __future__ import annotations
-
+import time
+import statistics
 from dataclasses import dataclass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -29,6 +30,8 @@ class ESPSomfyDiagSensorDescription(SensorEntityDescription):
     id: str | None = None
     events:dict | None = None
     native_value:any | None = None
+    min_interval:int = 0
+    value_count:int = 1
 
 
 async def async_setup_entry(
@@ -112,6 +115,8 @@ async def async_setup_entry(
                     icon="mdi:memory",
                     unit_of_measurement=UnitOfInformation.BYTES,
                     native_value=mem["free"],
+                    min_interval = 25,
+                    value_count = 15,
                     events={EVT_MEMSTATUS: "free"}), data=data))
             if("max" in mem):
                 new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg = ESPSomfyDiagSensorDescription(
@@ -121,6 +126,8 @@ async def async_setup_entry(
                     icon="mdi:memory",
                     unit_of_measurement=UnitOfInformation.BYTES,
                     native_value=mem["max"],
+                    min_interval = 30,
+                    value_count = 15,
                     events={EVT_MEMSTATUS: "max"}), data=data))
             if("min" in mem):
                 new_entities.append(ESPSomfyDiagSensor(controller=controller, cfg = ESPSomfyDiagSensorDescription(
@@ -128,6 +135,8 @@ async def async_setup_entry(
                     entity_category=EntityCategory.DIAGNOSTIC,
                     name="Min Memory",
                     icon="mdi:memory",
+                    min_interval = 30,
+                    value_count = 15,
                     unit_of_measurement=UnitOfInformation.BYTES,
                     native_value=mem["min"],
                     events={EVT_MEMSTATUS: "min"}), data=data))
@@ -160,18 +169,34 @@ class ESPSomfyDiagSensor(ESPSomfyEntity, SensorEntity):
         self.events = cfg.events
         self._attr_icon = cfg.icon
         self._attr_native_value = cfg.native_value
+        self._last_recorded = time.time()
+        self._min_interval = cfg.min_interval
+        self._value_count = cfg.value_count
+        self._values = []
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator"""
         if("event" in self._controller.data and self._controller.data["event"] in self.events):
             evt = self.events[self._controller.data["event"]]
             if(evt in self._controller.data):
-                self._attr_native_value = self._controller.data[evt]
-                self._available = True
-                self.async_write_ha_state()
+                self._values.append(self._controller.data[evt])
+                val = self._controller.data[evt]
+                if(time.time() > self._last_recorded + self._min_interval or len(self._values) >= self._value_count or not self._available):
+                    self._available = True
+                    if self._value_count > 1:
+                        val = int(statistics.median(self._values))
+                    self._values.clear()
+                    self._last_recorded = time.time()
+                    if val != self._attr_native_value:
+                        self._attr_native_value = val
+                        self.async_write_ha_state()
+                elif self._attr_native_value == None:
+                    self._attr_native_value = val
+                    self.async_write_ha_state()
         elif(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
-            self._available = bool(self._controller.data["connected"])
-            self.async_write_ha_state()
+            if self._available != bool(self._controller.data["connected"]):
+                self._available = bool(self._controller.data["connected"])
+                self.async_write_ha_state()
 
 
     @property
@@ -197,6 +222,8 @@ class ESPSomfyWifiStrengthSensor(ESPSomfyDiagSensor):
             state_class=SensorStateClass.MEASUREMENT,
             name="Wifi Strength",
             icon="mdi:wifi",
+            min_interval = 30,
+            value_count = 15,
             events={EVT_WIFISTRENGTH: "strength"}
         ), data=data)
         self._available = True

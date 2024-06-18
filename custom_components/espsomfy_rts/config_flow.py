@@ -96,7 +96,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
                 await self.async_set_unique_id(f"espsomfy_{api.server_id}")
-                self._abort_if_unique_id_configured()
+                self._abort_if_unique_id_configured(updates={CONF_HOST: self.host})
                 await api.login(
                     {
                         "username": user_input.get(CONF_USERNAME, ""),
@@ -125,6 +125,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle zeroconf discovery."""
         self.zero_conf = discovery_info
 
+
         # Check if already configured
         self.server_id = discovery_info.properties.get("serverId", "")
         # This was part of PR#54 and was incorrect the server id is simply the chip id of the ESP32 but could
@@ -132,10 +133,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # to add the device again.  Since the unique id contains the server id this will always be the same
         # as identified by the chip id on the ESP32.
         #await self.async_set_unique_id(f"{self.server_id}")
-        await self.async_set_unique_id(f"espsomfy_{self.server_id}")
         self.host = discovery_info.host
-        self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.host})
+        await self.async_set_unique_id(f"espsomfy_{self.server_id}")
 
+        self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.host}, reload_on_update=True)
         self.context.update(
             {
                 "title_placeholders": {
