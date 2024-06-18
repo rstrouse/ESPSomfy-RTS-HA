@@ -294,7 +294,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         self._tilt_type = 0
         self._state_attributes: dict[str, Any] = dict([])
         self._shade_type = 1
-
+        self._last_direction = 0
         if "flipPosition" in data and data["flipPosition"] is True:
             self._flip_position = True
 
@@ -357,6 +357,12 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                     self._attr_device_class = CoverDeviceClass.GARAGE
                 case 11 | 12 | 13:
                     self._attr_device_class = CoverDeviceClass.GATE
+                case 14 | 15 | 16:
+                    self._attr_device_class = CoverDeviceClass.GATE
+                    self._attr_supported_features = (
+                        CoverEntityFeature.OPEN
+                        | CoverEntityFeature.CLOSE
+                    )
                 case _:
                     self._attr_device_class = CoverDeviceClass.SHADE
 
@@ -406,7 +412,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                         self._state_attributes["position_target"] = int(self._controller.data["target"])
                     if "mypos" in self._controller.data:
                         self._state_attributes["my_pos"] = int(self._controller.data["mypos"])
-
+                    self.update_supported_features()
                     self._available = True
                 elif self._controller.data["event"] == EVT_SHADEREMOVED:
                     self._available = False
@@ -550,6 +556,36 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         """Return entity specific state attributes."""
         return self._state_attributes
 
+    @property
+    def is_toggle(self) -> bool:
+        if(self._shade_type == 5 or self._shade_type == 14 or self._shade_type == 15 or self._shade_type == 16):
+            return True
+        return False
+
+    def update_supported_features(self) -> None:
+        if self.is_toggle:
+            if self.is_opening or self.is_closing:
+                self._attr_supported_features |= CoverEntityFeature.STOP
+                self._attr_supported_features &= ~CoverEntityFeature.OPEN
+                self._attr_supported_features &= ~CoverEntityFeature.CLOSE
+                if self._direction != 0:
+                    self._last_direction = self._direction
+            else:
+                self._attr_supported_features &= ~CoverEntityFeature.STOP
+                if self.is_closed:
+                    print("closed")
+                    self._attr_supported_features &= ~CoverEntityFeature.CLOSE
+                    self._attr_supported_features |= CoverEntityFeature.OPEN
+                elif self.is_open:
+                    self._attr_supported_features &= ~CoverEntityFeature.OPEN
+                    self._attr_supported_features |= CoverEntityFeature.CLOSE
+                elif self._last_direction == 1:
+                    self._attr_supported_features |= CoverEntityFeature.OPEN
+                    self._attr_supported_features &= ~CoverEntityFeature.CLOSE
+                elif self._last_direction == -1:
+                    self._attr_supported_features &= ~CoverEntityFeature.OPEN
+                    self._attr_supported_features |= CoverEntityFeature.CLOSE
+
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
         """Set the tilt postion"""
         if self._flip_position is True:
@@ -606,7 +642,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         # This is ridiculous in that we need to invert these
         # if the type is an awning.
         #print(f"Opening Cover id#{self._shade_id} {self._attr_device_class}")
-        if(self._shade_type == 5):
+        if(self.is_toggle):
             if(self._direction == 0 or self._direction == 1):
                 await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
         elif self._attr_device_class == CoverDeviceClass.AWNING:
@@ -617,9 +653,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close cover."""
         #print(f"Closing Cover id#{self._shade_id} {self._attr_device_class}")
-        if(self._shade_type == 5):
-            if(self._direction == 0 or self._direction == -1):
-                await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
+        if(self.is_toggle):
+            await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
         elif self._attr_device_class == CoverDeviceClass.AWNING:
             await self._controller.api.open_shade(self._shade_id)
         else:
@@ -628,9 +663,8 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Hold cover."""
         # print(f"Stopping Cover id#{self._shade_id}")
-        if(self._shade_type == 5):
-            if(self.is_opening or self.is_closing):
-                await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
+        if(self.is_toggle):
+            await self._controller.api.shade_command({"shadeId": self._shade_id, "command":"toggle"})
         else:
             await self._controller.api.stop_shade(self._shade_id)
 

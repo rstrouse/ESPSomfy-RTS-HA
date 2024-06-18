@@ -9,6 +9,8 @@ import logging
 import threading
 import os
 from datetime import datetime
+from homeassistant.util import dt as dt_util
+
 from threading import Timer
 from typing import Any
 
@@ -620,8 +622,8 @@ class ESPSomfyAPI:
                 os.makedirs(self.backup_dir, exist_ok=True)
 
                 data = await resp.text(encoding=None)
-                fpath = self.hass.config.path(f"{self.backup_dir}/{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}.backup")
-
+                local_dt = dt_util.as_local(datetime.now(dt_util.UTC))
+                fpath = self.hass.config.path(f"{self.backup_dir}/{local_dt.strftime('%Y-%m-%dT%H_%M_%S')}.backup")
             async with aiofiles.open(fpath, mode='wb+') as f:
                 await f.write(data.encode())
                 return True
