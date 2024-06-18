@@ -12,6 +12,7 @@ from threading import Timer
 from typing import Any
 
 import aiohttp
+import aiofiles
 import websocket
 import re
 from packaging.version import Version, parse as version_parse
@@ -281,6 +282,7 @@ class ESPSomfyController(DataUpdateCoordinator):
             [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_WIFISTRENGTH, EVT_ETHERNET, EVT_MEMSTATUS]
         )
         await self.ws_listener.connect()
+
     async def create_backup(self) -> bool:
         return await self.api.create_backup()
 
@@ -591,21 +593,23 @@ class ESPSomfyAPI:
 
     async def create_backup(self) -> bool:
         """Creates a backup"""
-        url = f"{self._api_url}/backup?attach=true"
-        async with self._session.get(url, headers=self._headers) as resp:
-            if  resp.status == 200:
-                if not os.path.exists(self.backup_dir):
-                    os.mkdir(self.backup_dir)
+        try:
+            url = f"{self._api_url}/backup?attach=true"
+            async with self._session.get(url, headers=self._headers) as resp:
+                if resp.status != 200:
+                    return False
+
+                os.makedirs(self.backup_dir, exist_ok=True)
+
                 data = await resp.text(encoding=None)
                 fpath = self.hass.config.path(f"{self.backup_dir}/{datetime.now().strftime('%Y-%m-%dT%H_%M_%S')}.backup")
-                with open(file=fpath, mode="wb+") as f:
-                    if f is not None:
-                        f.write(data.encode())
-                        f.close()
-                    else:
-                        return False
-                    return True
-        return False
+
+            async with aiofiles.open(fpath, mode='wb+') as f:
+                await f.write(data.encode())
+                return True
+        except Exception as e:
+            _LOGGER.error(f"An error occurred while creating backup: {e}")
+            return False
 
     def get_backups(self) -> list[str] | None:
         """Gets a list of all the available backups"""
