@@ -526,9 +526,6 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
         """Return true if cover is closed."""
         if self._tilt_type == 3:
             return self._tilt_position == 100 or self._tilt_position == 0
-
-
-
         if self._flip_position is True:
             if self._attr_device_class == CoverDeviceClass.AWNING:
                 return self._position == 100
@@ -573,11 +570,10 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             else:
                 self._attr_supported_features &= ~CoverEntityFeature.STOP
                 if self.is_closed:
-                    print("closed")
-                    self._attr_supported_features &= ~CoverEntityFeature.CLOSE
+                    self._attr_supported_features |= CoverEntityFeature.CLOSE
                     self._attr_supported_features |= CoverEntityFeature.OPEN
                 elif self.is_open:
-                    self._attr_supported_features &= ~CoverEntityFeature.OPEN
+                    self._attr_supported_features |= CoverEntityFeature.OPEN
                     self._attr_supported_features |= CoverEntityFeature.CLOSE
                 elif self._last_direction == 1:
                     self._attr_supported_features |= CoverEntityFeature.OPEN
