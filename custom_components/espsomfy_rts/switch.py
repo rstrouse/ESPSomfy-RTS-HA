@@ -150,6 +150,8 @@ class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        if self.registry_entry.disabled:
+            return
         if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
             self._available = bool(self._controller.data["connected"])
             self.async_write_ha_state()

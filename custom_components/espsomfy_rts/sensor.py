@@ -176,6 +176,8 @@ class ESPSomfyDiagSensor(ESPSomfyEntity, SensorEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator"""
+        if self.registry_entry.disabled:
+            return
         if("event" in self._controller.data and self._controller.data["event"] in self.events):
             evt = self.events[self._controller.data["event"]]
             if(evt in self._controller.data):

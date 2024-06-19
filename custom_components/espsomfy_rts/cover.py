@@ -210,6 +210,8 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        if self.registry_entry.disabled:
+            return
         if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
             self._available = bool(self._controller.data["connected"])
             self.async_write_ha_state()
@@ -372,12 +374,16 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        if self.registry_entry.disabled:
+            return
+
         if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
             if self._available != bool(self._controller.data["connected"]):
                 self._available = bool(self._controller.data["connected"])
                 self.async_write_ha_state()
         elif "shadeId" in self._controller.data:
             if self._controller.data["shadeId"] == self._shade_id:
+
                 if self._controller.data["event"] == EVT_SHADESTATE:
                     if "remoteAddress" in self._controller.data:
                         self._state_attributes["remote_address"] = self._controller.data["remoteAddress"]
