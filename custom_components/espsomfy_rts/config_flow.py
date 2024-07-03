@@ -1,17 +1,22 @@
 """Config flow for ESPSomfy RTS."""
+
 from __future__ import annotations
 
-import dataclasses
+import logging
 from typing import Any
 
 import voluptuous as vol
-import logging
+
 from homeassistant import config_entries
 from homeassistant.components import zeroconf
-from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD, CONF_PIN, CONF_NAME
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_PIN,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant, callback
-
-
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.selector import (
@@ -40,10 +45,12 @@ DATA_SCHEMA = vol.Schema(
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect.
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
+
     session = aiohttp_client.async_get_clientsession(hass)
     async with session.get(f'http://{data["host"]}/discovery') as resp:
         if resp.status == 200:
@@ -57,7 +64,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 # collects the initial data from the user to determine whether the integration can
 # be installed.
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Configuration flow for ESPSomfyController"""
+    """Configuration flow for ESPSomfyController."""
 
     VERSION = 1
 
@@ -72,7 +79,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _show_setup_form(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, Any] = None,
+        errors: dict[str, Any] | None = None,
     ) -> FlowResult:
         """Show the setup form to the user."""
         host = user_input.get(CONF_HOST, self.host) if user_input else ""
@@ -82,7 +89,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_user(self, user_input: dict[str, Any] = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Handle the flow initialized by the user."""
 
         errors = {}
@@ -125,25 +134,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle zeroconf discovery."""
         self.zero_conf = discovery_info
 
-
         # Check if already configured
         self.server_id = discovery_info.properties.get("serverId", "")
         # This was part of PR#54 and was incorrect the server id is simply the chip id of the ESP32 but could
         # be replicated by other items.  If this server id is already configured then we do not want
         # to add the device again.  Since the unique id contains the server id this will always be the same
         # as identified by the chip id on the ESP32.
-        #await self.async_set_unique_id(f"{self.server_id}")
+        # await self.async_set_unique_id(f"{self.server_id}")
         self.host = discovery_info.host
         await self.async_set_unique_id(f"espsomfy_{self.server_id}")
 
-        self._abort_if_unique_id_configured(updates={CONF_HOST: discovery_info.host}, reload_on_update=True)
+        self._abort_if_unique_id_configured(
+            updates={CONF_HOST: discovery_info.host}, reload_on_update=True
+        )
         self.context.update(
             {
                 "title_placeholders": {
                     CONF_NAME: discovery_info.hostname,
                     CONF_HOST: discovery_info.host,
                     "model": discovery_info.properties.get("model", ""),
-                    "configuration_url": f"http://{discovery_info.host}"
+                    "configuration_url": f"http://{discovery_info.host}",
                 },
             }
         )

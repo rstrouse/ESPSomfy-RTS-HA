@@ -1,4 +1,5 @@
 """Controller for all the devices"""
+
 from __future__ import annotations
 
 import asyncio
@@ -58,11 +59,11 @@ from .const import (
     EVT_ETHERNET,
     EVT_MEMSTATUS,
     PLATFORMS,
-
 )
 
 _LOGGER = logging.getLogger(__name__)
 logging.getLogger("websocket").setLevel(logging.CRITICAL)
+
 
 class SocketListener(threading.Thread):
     """A listener of sockets."""
@@ -99,7 +100,7 @@ class SocketListener(threading.Thread):
         """Cancel event stream and join the thread."""
         _LOGGER.debug("Stopping event thread")
         self._should_stop = True
-        if self.ws_app: # and self.connected:
+        if self.ws_app:  # and self.connected:
             self.ws_app.close()
 
         _LOGGER.debug("Joining event thread")
@@ -123,7 +124,7 @@ class SocketListener(threading.Thread):
 
     def reconnect(self):
         """Reconnect to the web socket"""
-        if(self._connect_timer != None):
+        if self._connect_timer != None:
             self._connect_timer.cancel()
         self.reconnects = self.reconnects + 1
         self.main_loop = asyncio.get_event_loop()
@@ -141,13 +142,19 @@ class SocketListener(threading.Thread):
             self.connected = True
 
         except websocket.WebSocketAddressException:
-            self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer = Timer(
+                min(10 * self.reconnects / 2, 20), self.reconnect
+            )
             self._connect_timer.start()
         except websocket.WebSocketTimeoutException:
-            self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer = Timer(
+                min(10 * self.reconnects / 2, 20), self.reconnect
+            )
             self._connect_timer.start()
         except websocket.WebSocketConnectionClosedException:
-            self._connect_timer = Timer(min(10 * self.reconnects / 2, 20), self.reconnect)
+            self._connect_timer = Timer(
+                min(10 * self.reconnects / 2, 20), self.reconnect
+            )
             self._connect_timer.start()
 
     def set_filter(self, arr: Any) -> None:
@@ -176,13 +183,14 @@ class SocketListener(threading.Thread):
         self.connected = False
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.onclose)
+
     def ws_onopen(self, wsapp):
-        """The socket was opened"""
+        """Open the socket."""
         self.connected = True
         self.hass.loop.call_soon_threadsafe(self.onopen)
 
     def ws_onmessage(self, wsapp, message: str):
-        """Process the incoming message"""
+        """Process the incoming message."""
         try:
             if message is None:
                 _LOGGER.debug("Got an empty socket payload")
@@ -195,10 +203,9 @@ class SocketListener(threading.Thread):
                     data = json.loads(payload)
                     data["event"] = event
                     self.hass.loop.call_soon_threadsafe(self.onpacket, data)
-            else:
-                if message.lower() == "connected":
-                    self.reconnects = 0
-                    self.connected = True
+            elif message.lower() == "connected":
+                self.reconnects = 0
+                self.connected = True
         except Exception as e:
             _LOGGER.debug(e.message)
             raise e
@@ -220,8 +227,9 @@ class ESPSomfyController(DataUpdateCoordinator):
         self.config_entry_id = config_entry_id
         self.api = api
         self.ws_listener = None
+
     @property
-    def device_name(self) ->str:
+    def device_name(self) -> str:
         """Gets the device name from the host"""
         return self.api.deviceName
 
@@ -249,6 +257,7 @@ class ESPSomfyController(DataUpdateCoordinator):
     def latest_version(self) -> str:
         """Gets the current version for the controller"""
         return self.api.latest_version
+
     @property
     def check_for_update(self) -> bool:
         """Indicates whether the firmware should check for updates"""
@@ -284,7 +293,19 @@ class ESPSomfyController(DataUpdateCoordinator):
             self.ws_onerror,
         )
         self.ws_listener.set_filter(
-            [EVT_CONNECTED, EVT_SHADEADDED, EVT_SHADEREMOVED, EVT_SHADESTATE, EVT_SHADECOMMAND, EVT_GROUPSTATE, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_WIFISTRENGTH, EVT_ETHERNET, EVT_MEMSTATUS]
+            [
+                EVT_CONNECTED,
+                EVT_SHADEADDED,
+                EVT_SHADEREMOVED,
+                EVT_SHADESTATE,
+                EVT_SHADECOMMAND,
+                EVT_GROUPSTATE,
+                EVT_FWSTATUS,
+                EVT_UPDPROGRESS,
+                EVT_WIFISTRENGTH,
+                EVT_ETHERNET,
+                EVT_MEMSTATUS,
+            ]
         )
         await self.ws_listener.connect()
 
@@ -406,7 +427,6 @@ class ESPSomfyController(DataUpdateCoordinator):
         if "event" in data and data["event"] == EVT_FWSTATUS:
             self.api.set_firmware(data)
 
-
         self.async_set_updated_data(data=data)
 
     def ws_onopen(self):
@@ -420,11 +440,12 @@ class ESPSomfyController(DataUpdateCoordinator):
             _LOGGER.debug("ESPSomfy RTS configuring entities")
             loop = asyncio.get_event_loop()
             coro = loop.create_task(self.api.get_initial())
+
             def handle_connected(_coro):
                 data = {"event": EVT_CONNECTED, "connected": True}
                 self.async_set_updated_data(data=data)
-            coro.add_done_callback(handle_connected)
 
+            coro.add_done_callback(handle_connected)
 
     def ws_onerror(self, exception):
         """An error occurred on the socket connection"""
@@ -512,20 +533,24 @@ class ESPSomfyAPI:
     def can_update(self) -> bool:
         """Getter for whether the firmware is updatable"""
         return self._can_update
+
     @property
     def backup_dir(self) -> str:
         """Gets the backup directory for the device"""
         return self.hass.config.path(f"ESPSomfyRTS_{self.server_id}")
+
     @property
     def check_for_update(self) -> bool:
         if "checkForUpdate" in self._config:
             return self._config["checkForUpdate"]
         return self._can_update
+
     @property
     def internet_available(self) -> bool:
         if "inetAvailable" in self._config:
             return self._config["inetAvailable"]
         return self._can_update
+
     @property
     def is_configured(self) -> bool:
         """Indicates whether the integration has been configured"""
@@ -581,16 +606,20 @@ class ESPSomfyAPI:
         if cver != new_ver:
             # print(f"Version: {cver} to {new_ver}")
             dev_registry = device_registry.async_get(self.hass)
-            if dev := dev_registry.async_get_device(identifiers={(DOMAIN, f"espsomfy_{self.server_id}")}):
+            if dev := dev_registry.async_get_device(
+                identifiers={(DOMAIN, f"espsomfy_{self.server_id}")}
+            ):
                 dev_registry.async_update_device(dev.id, sw_version=new_ver)
         self._config["version"] = new_ver
         v = version_parse(new_ver)
-        if (v.major > 2) or (v.major == 2 and v.minor > 2) or (v.major == 2 and v.minor == 2 and v.micro > 0):
+        if (
+            (v.major > 2)
+            or (v.major == 2 and v.minor > 2)
+            or (v.major == 2 and v.minor == 2 and v.micro > 0)
+        ):
             self._can_update = True
         else:
             self._can_update = False
-
-
 
     async def check_address(self, url) -> bool:
         """Sends a head to a url to check if it exists"""
@@ -606,7 +635,7 @@ class ESPSomfyAPI:
     async def update_firmware(self, version) -> bool:
         url = f"{self._api_url}/downloadFirmware?ver={version}"
         async with self._session.get(url, headers=self._headers) as resp:
-            if(resp.status == 200):
+            if resp.status == 200:
                 return True
             _LOGGER.error(await resp.text())
         return False
@@ -623,8 +652,10 @@ class ESPSomfyAPI:
 
                 data = await resp.text(encoding=None)
                 local_dt = dt_util.as_local(datetime.now(dt_util.UTC))
-                fpath = self.hass.config.path(f"{self.backup_dir}/{local_dt.strftime('%Y-%m-%dT%H_%M_%S')}.backup")
-            async with aiofiles.open(fpath, mode='wb+') as f:
+                fpath = self.hass.config.path(
+                    f"{self.backup_dir}/{local_dt.strftime('%Y-%m-%dT%H_%M_%S')}.backup"
+                )
+            async with aiofiles.open(fpath, mode="wb+") as f:
                 await f.write(data.encode())
                 return True
         except Exception as e:
@@ -633,15 +664,20 @@ class ESPSomfyAPI:
 
     def get_backups(self) -> list[str] | None:
         """Gets a list of all the available backups"""
-        f:list[str] = []
+        f: list[str] = []
         if not os.path.exists(self.backup_dir):
             return None
         files = os.listdir(self.backup_dir)
         for file in files:
-            if(os.path.isfile(os.path.join(self.backup_dir, file)) and file.endswith(".backup") and file[:1].isdigit()):
+            if (
+                os.path.isfile(os.path.join(self.backup_dir, file))
+                and file.endswith(".backup")
+                and file[:1].isdigit()
+            ):
                 f.append(file)
         f.sort(reverse=True)
         return f
+
     def apply_data(self, data) -> None:
         """Applies the returned data to the configuration"""
         self._config["serverId"] = data["serverId"]
@@ -684,7 +720,6 @@ class ESPSomfyAPI:
             if self._config["permissions"] != 1:
                 self._needsKey = True
         self.set_firmware(data)
-
 
     async def discover(self) -> Any | None:
         """Discover the device on the network"""
@@ -756,7 +791,7 @@ class ESPSomfyAPI:
 
     async def stop_shade(self, shade_id: int):
         """Send the command to stop the shade"""
-        #print(f"STOP ShadeId:{shade_id}")
+        # print(f"STOP ShadeId:{shade_id}")
         await self.shade_command({"shadeId": shade_id, "command": "my"})
 
     async def open_group(self, group_id: int):
@@ -769,43 +804,48 @@ class ESPSomfyAPI:
 
     async def stop_group(self, group_id: int):
         """Send the command to stop the group"""
-        #print(f"STOP GroupId:{group_id}")
+        # print(f"STOP GroupId:{group_id}")
         await self.group_command({"groupId": group_id, "command": "my"})
 
     async def position_shade(self, shade_id: int, position: int):
         """Send the command to position the shade"""
-        #print(f"POS ShadeId:{shade_id} Target:{position}")
+        # print(f"POS ShadeId:{shade_id} Target:{position}")
         await self.shade_command({"shadeId": shade_id, "target": position})
 
     async def raw_command(self, shade_id: int, command: str, repeat: int):
         """Send the command to the shade"""
-        await self.shade_command({"shadeId": shade_id, "command": command, "repeat": repeat})
+        await self.shade_command(
+            {"shadeId": shade_id, "command": command, "repeat": repeat}
+        )
 
     async def shade_command(self, data):
         """Send commands to ESPSomfyRTS via PUT request"""
         await self.put_command(API_SHADECOMMAND, data)
 
-    async def set_current_position(self, shade_id:int, position:int):
+    async def set_current_position(self, shade_id: int, position: int):
         """Sets the current position without moving the motor"""
-        await self.put_command(API_SETPOSITIONS, {"shadeId": shade_id, "position": position})
+        await self.put_command(
+            API_SETPOSITIONS, {"shadeId": shade_id, "position": position}
+        )
 
-    async def set_current_tilt_position(self, shade_id: int, tilt_position:int):
+    async def set_current_tilt_position(self, shade_id: int, tilt_position: int):
         """Sets the current position without moving the motor"""
-        await self.put_command(API_SETPOSITIONS, {"shadeId": shade_id, "tiltPosition": tilt_position})
+        await self.put_command(
+            API_SETPOSITIONS, {"shadeId": shade_id, "tiltPosition": tilt_position}
+        )
 
-    async def set_sunny(self, shade_id:int, sunny:bool):
+    async def set_sunny(self, shade_id: int, sunny: bool):
         """Set the sunny condition for the motor"""
         await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "sunny": sunny})
 
-    async def set_windy(self, shade_id:int, windy:bool):
+    async def set_windy(self, shade_id: int, windy: bool):
         """Set the windy condition for the motor"""
         await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "windy": windy})
 
     async def put_command(self, command, data):
         """Sends a put command to the device"""
-        #print(f"Sending: {self._api_url}{command}")
-        async with self._session.put(
-            f"{self._api_url}{command}", json=data) as resp:
+        # print(f"Sending: {self._api_url}{command}")
+        async with self._session.put(f"{self._api_url}{command}", json=data) as resp:
             if resp.status == 200:
                 pass
             else:
@@ -864,10 +904,14 @@ class ESPSomfyAPI:
                 if resp.status == 200:
                     data = await resp.json()
                     self.apply_data(data)
-                    entry = self.hass.config_entries.async_get_entry(self._config_entry_id)
-                    if(self._configured == False):
+                    entry = self.hass.config_entries.async_get_entry(
+                        self._config_entry_id
+                    )
+                    if self._configured == False:
                         _LOGGER.debug("ESPSomfy RTS Setting up entities")
-                        await self.hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+                        await self.hass.config_entries.async_forward_entry_setups(
+                            entry, PLATFORMS
+                        )
                         self._configured = True
                 else:
                     _LOGGER.error(await resp.text())

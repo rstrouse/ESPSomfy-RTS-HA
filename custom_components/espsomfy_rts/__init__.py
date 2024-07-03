@@ -1,9 +1,11 @@
 """The ESPSomfy RTS integration."""
+
 from __future__ import annotations
+
 from enum import IntFlag
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceEntry
@@ -14,6 +16,7 @@ from .controller import ESPSomfyAPI, ESPSomfyController
 
 class ESPSomfyRTSEntityFeature(IntFlag):
     """Supported features of ESPSomfy Entities."""
+
     REBOOT = 1
     BACKUP = 2
 
@@ -30,6 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     hass.config_entries.async_update_entry(entry, title=api.deviceName)
+
     # entry.title = api.deviceName
     async def _async_ws_close(_: Event) -> None:
         await controller.ws_close()
@@ -47,11 +51,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    controller:ESPSomfyController = hass.data[DOMAIN].get(entry.entry_id)
+    controller: ESPSomfyController = hass.data[DOMAIN].get(entry.entry_id)
     if controller is not None:
         await controller.ws_close()
-        if(controller.api.is_configured):
-            if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        if controller.api.is_configured:
+            if unload_ok := await hass.config_entries.async_unload_platforms(
+                entry, PLATFORMS
+            ):
                 hass.data[DOMAIN].pop(entry.entry_id)
             return unload_ok
     return True
@@ -60,5 +66,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_config_entry_device(
     hass: HomeAssistant, config_entry: ConfigEntry, device_entry: DeviceEntry
 ) -> bool:
-    """Remove a config entry from a device"""
+    """Remove a config entry from a device."""
     return True
