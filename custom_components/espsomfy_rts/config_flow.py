@@ -47,9 +47,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
+    """Validate the user input allows us to connect."""
 
     session = aiohttp_client.async_get_clientsession(hass)
     async with session.get(f'http://{data["host"]}/discovery') as resp:
@@ -98,10 +96,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 if not is_host_valid(user_input.get(CONF_HOST, "")):
-                    raise InvalidHost()
-                else:
-                    self.host = user_input.get(CONF_HOST, "")
-
+                    raise InvalidHost
+                self.host = user_input.get(CONF_HOST, "")
                 api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
                 await self.async_set_unique_id(f"espsomfy_{api.server_id}")
@@ -210,7 +206,7 @@ class ESPSomfyOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             try:
                 if not is_host_valid(user_input[CONF_HOST]):
-                    raise InvalidHost()
+                    raise InvalidHost
                 api = ESPSomfyAPI(self.hass, 0, user_input)
                 await api.discover()
                 await api.login(

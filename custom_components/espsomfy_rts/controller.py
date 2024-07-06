@@ -1,63 +1,56 @@
-"""Controller for all the devices"""
+"""Controller for all the devices."""
 
 from __future__ import annotations
 
 import asyncio
-from enum import IntFlag
-from datetime import timedelta
+from datetime import datetime
 import json
 import logging
-import threading
 import os
-from datetime import datetime
-from homeassistant.util import dt as dt_util
-
+import threading
 from threading import Timer
 from typing import Any
 
-import aiohttp
 import aiofiles
+import aiohttp
+from packaging.version import parse as version_parse
 import websocket
-import re
-from packaging.version import Version, parse as version_parse
 
 from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_PIN,
-    Platform,
-)
+from homeassistant.const import CONF_HOST, CONF_PIN, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import aiohttp_client, device_registry, entity_registry
+from homeassistant.helpers import (
+    aiohttp_client,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity_registry import async_entries_for_config_entry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
-    API_LOGIN,
     API_DISCOVERY,
-    API_SHADECOMMAND,
     API_GROUPCOMMAND,
-    API_TILTCOMMAND,
-    API_SHADES,
     API_GROUPS,
+    API_LOGIN,
     API_SETPOSITIONS,
     API_SETSENSOR,
+    API_SHADECOMMAND,
+    API_SHADES,
+    API_TILTCOMMAND,
     DOMAIN,
     EVT_CONNECTED,
+    EVT_ETHERNET,
+    EVT_FWSTATUS,
+    EVT_GROUPSTATE,
+    EVT_MEMSTATUS,
     EVT_SHADEADDED,
+    EVT_SHADECOMMAND,
     EVT_SHADEREMOVED,
     EVT_SHADESTATE,
-    EVT_GROUPSTATE,
-    EVT_SHADECOMMAND,
-    EVT_FWSTATUS,
     EVT_UPDPROGRESS,
     EVT_WIFISTRENGTH,
-    EVT_ETHERNET,
-    EVT_MEMSTATUS,
     PLATFORMS,
 )
 
@@ -71,7 +64,7 @@ class SocketListener(threading.Thread):
     def __init__(
         self, hass: HomeAssistant, url: str, onpacket, onopen, onclose, onerror
     ) -> None:
-        """Initialize a new socket listener"""
+        """Initialize a new socket listener."""
         super().__init__()
         self.url = url
         self.onpacket = onpacket
@@ -107,10 +100,9 @@ class SocketListener(threading.Thread):
         if self.is_alive():
             self.join()
         _LOGGER.debug("Event thread joined")
-        print("Event thread joined")
 
     async def connect(self):
-        """Start up the web socket"""
+        """Start up the web socket."""
         self.main_loop = asyncio.get_event_loop()
         self.ws_app = websocket.WebSocketApp(
             self.url,
@@ -123,8 +115,8 @@ class SocketListener(threading.Thread):
         self.main_loop.run_in_executor(None, self.ws_begin)
 
     def reconnect(self):
-        """Reconnect to the web socket"""
-        if self._connect_timer != None:
+        """Reconnect to the web socket."""
+        if self._connect_timer is not None:
             self._connect_timer.cancel()
         self.reconnects = self.reconnects + 1
         self.main_loop = asyncio.get_event_loop()
@@ -158,7 +150,7 @@ class SocketListener(threading.Thread):
             self._connect_timer.start()
 
     def set_filter(self, arr: Any) -> None:
-        """Sets the filter for the events"""
+        """Filter for the events."""
         self.filter = arr.copy()
 
     def close(self) -> None:
@@ -166,19 +158,19 @@ class SocketListener(threading.Thread):
         self.stop()
 
     def ws_begin(self) -> None:
-        """Begin running the thread"""
-        self.running_future = self.ws_app.run_forever(ping_interval=10, ping_timeout=7)
+        """Begin the socket."""
+        self.running_future = self.ws_app.run_forever(ping_interval=20, ping_timeout=15)
         # print("Fell out of run_runforever")
         if not self._should_stop:
             self.hass.loop.call_soon_threadsafe(self.reconnect)
 
     def ws_onerror(self, wsapp, exception):
-        """An error occurred on the socket connection"""
+        """Socket error."""
         # print(f"We have an error {exception}")
         self.hass.loop.call_soon_threadsafe(self.onerror, exception)
 
     def ws_onclose(self, wsapp, status, msg):
-        """The socket has been closed"""
+        """Socket closed."""
         # print(f"The socket was closed {status}")
         self.connected = False
         if not self._should_stop:
@@ -208,7 +200,7 @@ class SocketListener(threading.Thread):
                 self.connected = True
         except Exception as e:
             _LOGGER.debug(e.message)
-            raise e
+            raise
 
 
 class ESPSomfyController(DataUpdateCoordinator):
@@ -230,59 +222,57 @@ class ESPSomfyController(DataUpdateCoordinator):
 
     @property
     def device_name(self) -> str:
-        """Gets the device name from the host"""
+        """Get the device name from the host."""
         return self.api.deviceName
 
     @property
     def server_id(self) -> str:
-        """Gets the server id from the api"""
+        """Get the server id from the api."""
         return self.api.server_id
 
     @property
     def unique_id(self) -> str:
-        """Gets a unique id for the controller"""
+        """Get a unique id for the controller."""
         return f"espsomfy_{self.server_id}"
 
     @property
     def model(self) -> str:
-        """Gets the model for the controller"""
+        """Get the model for the controller."""
         return self.api.model
 
     @property
     def version(self) -> str:
-        """Gets the current version for the controller"""
+        """Get the current version for the controller."""
         return self.api.version
 
     @property
     def latest_version(self) -> str:
-        """Gets the current version for the controller"""
+        """Get the latest version for the controller."""
         return self.api.latest_version
 
     @property
     def check_for_update(self) -> bool:
-        """Indicates whether the firmware should check for updates"""
+        """Indicate whether the firmware should check for updates."""
         return self.api.check_for_update
 
     @property
     def internet_available(self) -> bool:
-        """Indicates whether the firmware should check for updates"""
+        """Indicates whether the ESPSomfy RTS hardware has internet access."""
         return self.api.internet_available
 
     @property
     def can_update(self) -> bool:
-        """Gets a flag that indicates whether the firmware can be updated"""
+        """Get a flag that indicates whether the firmware can be updated."""
         return self.api.can_update
 
     async def ws_close(self) -> None:
-        """Closes the tasks and sockets"""
-        if not self.ws_listener is None:
-            print("closing ESPSomfyRTS listener")
+        """Close the tasks and sockets."""
+        if self.ws_listener is not None:
             self.ws_listener.close()
-        return
 
     async def ws_connect(self):
-        """Method to connect to WebSocket"""
-        if not self.ws_listener is None:
+        """Connect to WebSocket."""
+        if self.ws_listener is not None:
             self.ws_listener.close()
         self.ws_listener = SocketListener(
             self.hass,
@@ -310,27 +300,27 @@ class ESPSomfyController(DataUpdateCoordinator):
         await self.ws_listener.connect()
 
     async def create_backup(self) -> bool:
-        """Creates a backup of the configuration and stores it in HA"""
+        """Create a backup of the configuration and stores it in HA."""
         return await self.api.create_backup()
 
     async def update_firmware(self, version) -> bool:
-        """Starts the firmware update process"""
+        """Start the firmware update process."""
         return await self.api.update_firmware(version)
 
     async def set_host(self, host) -> None:
-        """Sets a host name and reloads the sockets if the host has changed"""
-        if self.api._host != host:
+        """Set a host name and reloads the sockets if the host has changed."""
+        if self.api.get_host() != host:
             # Tear down the socket
             self.api.set_host(host)
             self.ws_connect()
 
     def ensure_group_configured(self, data):
-        """Ensures the group exists on Home Assistant"""
+        """Ensure the group exists on Home Assistant."""
         uuid = f"{self.unique_id}_group{data['groupId']}"
-        devices = device_registry.async_get(self.hass)
+        devices = dr.async_get(self.hass)
         device = devices.async_get_device({(DOMAIN, self.unique_id)})
-        entities = entity_registry.async_get(self.hass)
-        for entity in async_entries_for_config_entry(entities, self.config_entry_id):
+        entities = er.async_get(self.hass)
+        for entity in er.async_entries_for_config_entry(entities, self.config_entry_id):
             if entity.unique_id == uuid:
                 return
         dev_features = (
@@ -351,18 +341,17 @@ class ESPSomfyController(DataUpdateCoordinator):
             suggested_object_id=f"{str(data['name']).lower().replace(' ', '_')}",
             supported_features=dev_features,
         )
-        print(f"Group not found {uuid} and one was added")
 
     def ensure_shade_configured(self, data):
-        """Ensures the shade exists on Home Assistant"""
+        """Ensure the shade exists on Home Assistant."""
         uuid = f"{self.unique_id}_{data['shadeId']}"
 
-        devices = device_registry.async_get(self.hass)
+        devices = dr.async_get(self.hass)
         device = devices.async_get_device({(DOMAIN, self.unique_id)})
 
-        entities = entity_registry.async_get(self.hass)
+        entities = er.async_get(self.hass)
 
-        for entity in async_entries_for_config_entry(entities, self.config_entry_id):
+        for entity in er.async_entries_for_config_entry(entities, self.config_entry_id):
             if entity.unique_id == uuid:
                 return
         dev_features = (
@@ -385,13 +374,12 @@ class ESPSomfyController(DataUpdateCoordinator):
                                     | CoverEntityFeature.CLOSE_TILT
                                     | CoverEntityFeature.SET_TILT_POSITION
                                 )
-                    else:
-                        if "hasTilt" in data and data["hasTilt"] is True:
-                            dev_features |= (
-                                CoverEntityFeature.OPEN_TILT
-                                | CoverEntityFeature.CLOSE_TILT
-                                | CoverEntityFeature.SET_TILT_POSITION
-                            )
+                    elif "hasTilt" in data and data["hasTilt"] is True:
+                        dev_features |= (
+                            CoverEntityFeature.OPEN_TILT
+                            | CoverEntityFeature.CLOSE_TILT
+                            | CoverEntityFeature.SET_TILT_POSITION
+                        )
                 case 2 | 7 | 8:
                     dev_class = CoverDeviceClass.CURTAIN
                 case 3:
@@ -412,10 +400,9 @@ class ESPSomfyController(DataUpdateCoordinator):
             suggested_object_id=f"{str(data['name']).lower().replace(' ', '_')}",
             supported_features=dev_features,
         )
-        print(f"Shade not found {uuid} and one was added")
 
     def ws_onpacket(self, data):
-        """Packet from the websocket"""
+        """Packet from the websocket."""
         # Below doesn't work.  Near as I can tell there is no
         # real way of adding an entity on the fly.  All this
         # does is add an entity that is not really attached.
@@ -430,7 +417,7 @@ class ESPSomfyController(DataUpdateCoordinator):
         self.async_set_updated_data(data=data)
 
     def ws_onopen(self):
-        """Callback when the websocket is opened"""
+        """Websocket is opened."""
         _LOGGER.debug("ESPSomfy RTS Socket was opened")
         if self.api.is_configured:
             _LOGGER.debug("ESPSomfy RTS Already Configured")
@@ -448,20 +435,21 @@ class ESPSomfyController(DataUpdateCoordinator):
             coro.add_done_callback(handle_connected)
 
     def ws_onerror(self, exception):
-        """An error occurred on the socket connection"""
+        """Error on the socket connection."""
         data = {"event": EVT_CONNECTED, "connected": False}
         self.async_set_updated_data(data=data)
 
     def ws_onclose(self):
-        """The socket has been closed"""
+        """Socket closed."""
         data = {"event": EVT_CONNECTED, "connected": False}
         self.async_set_updated_data(data=data)
 
 
 class ESPSomfyAPI:
-    """API for sending data to nodejs-PoolController"""
+    """API for sending data to ESPSomfy RTS hardware device."""
 
     def __init__(self, hass: HomeAssistant, config_entry_id, data) -> None:
+        """Initialize the API."""
         self.hass = hass
         self.data = data
         self.set_host(data[CONF_HOST])
@@ -469,7 +457,7 @@ class ESPSomfyAPI:
         self._session = async_get_clientsession(self.hass, verify_ssl=False)
         self._authType = 0
         self._needsKey = False
-        self._headers = dict({"apikey": ""})
+        self._headers = {"apikey": ""}
         self._canLogin = False
         self._deviceName = data[CONF_HOST]
         self._can_update = False
@@ -485,29 +473,29 @@ class ESPSomfyAPI:
 
     @property
     def groups(self) -> Any:
-        """Return the state groups"""
+        """Return the state groups."""
         if "groups" in self._config:
             return self._config["groups"]
         return []
 
     @property
     def server_id(self) -> str | None:
-        """Getter for the server id"""
+        """Getter for the server id."""
         if "serverId" in self._config:
             return self._config["serverId"]
 
     @property
     def version(self) -> str:
-        """Getter for the api version"""
+        """Getter for the api version."""
         if "version" in self._config:
             return self._config["version"]
-        elif "fwVersion" in self._config:
+        if "fwVersion" in self._config:
             return self._config["fwVersion"]
         return "0.0.0"
 
     @property
     def latest_version(self) -> str | None:
-        """Getter for the latest version"""
+        """Getter for the latest version."""
         if "latest" in self._config:
             if self._config["latest"] == "":
                 return None
@@ -516,74 +504,81 @@ class ESPSomfyAPI:
 
     @property
     def model(self) -> str:
-        """Getter for the model number"""
+        """Getter for the model number."""
         return self._config["model"]
 
     @property
     def apiKey(self) -> str:
-        """Getter for the api key"""
+        """Getter for the api key."""
         return self._config["apiKey"]
 
     @property
     def deviceName(self) -> str:
-        """Getter for the device name"""
+        """Getter for the device name."""
         return self._deviceName
 
     @property
     def can_update(self) -> bool:
-        """Getter for whether the firmware is updatable"""
+        """Getter for whether the firmware is updatable."""
         return self._can_update
 
     @property
     def backup_dir(self) -> str:
-        """Gets the backup directory for the device"""
+        """Gets the backup directory for the device."""
         return self.hass.config.path(f"ESPSomfyRTS_{self.server_id}")
 
     @property
     def check_for_update(self) -> bool:
+        """Check for the current update."""
         if "checkForUpdate" in self._config:
             return self._config["checkForUpdate"]
         return self._can_update
 
     @property
     def internet_available(self) -> bool:
+        """Check to see if the ESPSomfy RTS hardware has internet."""
         if "inetAvailable" in self._config:
             return self._config["inetAvailable"]
         return self._can_update
 
     @property
     def is_configured(self) -> bool:
-        """Indicates whether the integration has been configured"""
+        """Indicates whether the integration has been configured."""
         return self._configured
 
     def set_host(self, host) -> None:
-        """Sets the host for the integration"""
+        """Set the host for the integration."""
         self._host = host
         self._sock_url = f"ws://{self._host}:8080"
         self._api_url = f"http://{self._host}:8081"
         self._config_url = f"http://{self._host}"
 
+    def get_host(self):
+        """Get the current host."""
+        return self._host
+
     def get_sock_url(self):
-        """Get the socket interface url"""
+        """Get the socket interface url."""
         return self._sock_url
 
     def get_api_url(self):
-        """Get that url used for api reference"""
+        """Get that url used for api reference."""
         return self._api_url
 
     def get_config_url(self) -> str:
+        """Get the configuration url."""
         return self._config_url
 
     def get_config(self):
-        """Return the initial config"""
+        """Return the initial config."""
         return self._config
 
     def get_data(self):
-        """Return the internal data"""
+        """Return the internal data."""
         return self.data
 
     def set_firmware(self, data) -> None:
-        """Set the firmware data from the socket"""
+        """Set the firmware data from the socket."""
         cver = "0.0.0"
         if "version" in self._config:
             cver = self._config["version"]
@@ -605,7 +600,7 @@ class ESPSomfyAPI:
             self._config["inetAvailable"] = data["inetAvailable"]
         if cver != new_ver:
             # print(f"Version: {cver} to {new_ver}")
-            dev_registry = device_registry.async_get(self.hass)
+            dev_registry = dr.async_get(self.hass)
             if dev := dev_registry.async_get_device(
                 identifiers={(DOMAIN, f"espsomfy_{self.server_id}")}
             ):
@@ -622,17 +617,19 @@ class ESPSomfyAPI:
             self._can_update = False
 
     async def check_address(self, url) -> bool:
-        """Sends a head to a url to check if it exists"""
+        """Send a head to a url to check if it exists."""
         try:
             async with self._session.get(url) as resp:
                 if resp.status == 200:
                     return True
-                print(resp)
-        except:
+        except Exception:  # noqa: BLE001
+            # We don't care to do anything other than catch expections here.  If anything goes wrong there is an issue
+            # with the address and we should not use it.
             pass
         return False
 
     async def update_firmware(self, version) -> bool:
+        "Update to the latest firmware version."
         url = f"{self._api_url}/downloadFirmware?ver={version}"
         async with self._session.get(url, headers=self._headers) as resp:
             if resp.status == 200:
@@ -641,7 +638,7 @@ class ESPSomfyAPI:
         return False
 
     async def create_backup(self) -> bool:
-        """Creates a backup"""
+        """Create a backup."""
         try:
             url = f"{self._api_url}/backup?attach=true"
             async with self._session.get(url, headers=self._headers) as resp:
@@ -658,28 +655,28 @@ class ESPSomfyAPI:
             async with aiofiles.open(fpath, mode="wb+") as f:
                 await f.write(data.encode())
                 return True
-        except Exception as e:
-            _LOGGER.error(f"An error occurred while creating backup: {e}")
+        except Exception as e:  # noqa: BLE001
+            _LOGGER.error("An error occurred while creating backup: %s", e)
             return False
 
     def get_backups(self) -> list[str] | None:
-        """Gets a list of all the available backups"""
+        """Get a list of all the available backups."""
         f: list[str] = []
         if not os.path.exists(self.backup_dir):
             return None
         files = os.listdir(self.backup_dir)
-        for file in files:
-            if (
-                os.path.isfile(os.path.join(self.backup_dir, file))
-                and file.endswith(".backup")
-                and file[:1].isdigit()
-            ):
-                f.append(file)
+        f = [
+            file
+            for file in files
+            if os.path.isfile(os.path.join(self.backup_dir, file))
+            and file.endswith(".backup")
+            and file[:1].isdigit()
+        ]
         f.sort(reverse=True)
         return f
 
     def apply_data(self, data) -> None:
-        """Applies the returned data to the configuration"""
+        """Apply the returned data to the configuration."""
         self._config["serverId"] = data["serverId"]
         self._config["model"] = data["model"]
         if "chipModel" in data:
@@ -722,7 +719,7 @@ class ESPSomfyAPI:
         self.set_firmware(data)
 
     async def discover(self) -> Any | None:
-        """Discover the device on the network"""
+        """Discover the device on the network."""
         url = f"{self._api_url}{API_DISCOVERY}"
         async with self._session.get(url, headers=self._headers) as resp:
             if resp.status == 200:
@@ -733,7 +730,7 @@ class ESPSomfyAPI:
             raise DiscoveryError(f"{url} - {await resp.text()}")
 
     async def load_shades(self) -> Any | None:
-        """Loads all the shades from the controller"""
+        """Load all the shades from the controller."""
         async with self._session.get(f"{self._api_url}{API_SHADES}") as resp:
             if resp.status == 200:
                 self._config["shades"] = await resp.json()
@@ -741,7 +738,7 @@ class ESPSomfyAPI:
             _LOGGER.error(await resp.text())
 
     async def load_groups(self) -> Any | None:
-        """Loads all the groups from the controller"""
+        """Load all the groups from the controller."""
         async with self._session.get(f"{self._api_url}{API_GROUPS}") as resp:
             if resp.status == 200:
                 self._config["groups"] = await resp.json()
@@ -749,102 +746,99 @@ class ESPSomfyAPI:
             _LOGGER.error(await resp.text())
 
     async def tilt_open(self, shade_id: int):
-        """Send the command to open the tilt"""
+        """Send the command to open the tilt."""
         await self.tilt_command({"shadeId": shade_id, "command": "up"})
 
     async def tilt_close(self, shade_id: int):
-        """Send the command to close the tilt"""
+        """Send the command to close the tilt."""
         await self.tilt_command({"shadeId": shade_id, "command": "down"})
 
     async def position_tilt(self, shade_id: int, position: int):
-        """Send the command to position the shade"""
+        """Send the command to position the shade."""
         # print(f"Setting tilt position to {position}")
         await self.tilt_command({"shadeId": shade_id, "target": position})
 
     async def sun_flag_off(self, shade_id: int):
-        """Send the command to turn off the sun flag"""
+        """Send the command to turn off the sun flag."""
         await self.shade_command({"shadeId": shade_id, "command": "flag"})
 
     async def sun_flag_on(self, shade_id: int):
-        """Send the command to turn off the sun flag"""
+        """Send the command to turn off the sun flag."""
         await self.shade_command({"shadeId": shade_id, "command": "sunflag"})
 
     async def sun_flag_group_off(self, group_id: int):
-        """Send the command to turn off the sun flag"""
+        """Send the command to turn off the sun flag."""
         await self.group_command({"groupId": group_id, "command": "flag"})
 
     async def sun_flag_group_on(self, group_id: int):
-        """Send the command to turn off the sun flag"""
+        """Send the command to turn off the sun flag."""
         await self.group_command({"groupId": group_id, "command": "sunflag"})
 
     async def open_shade(self, shade_id: int):
-        """Send the command to open the shade"""
+        """Send the command to open the shade."""
         await self.shade_command({"shadeId": shade_id, "command": "up"})
 
     async def close_shade(self, shade_id: int):
-        """Send the command to close the shade"""
+        """Send the command to close the shade."""
         await self.shade_command({"shadeId": shade_id, "command": "down"})
 
     async def toggle_shade(self, shade_id: int):
-        """Sent the command to toggle"""
+        """Sent the command to toggle."""
         await self.shade_command({"shadeId": shade_id, "command": "toggle"})
 
     async def stop_shade(self, shade_id: int):
-        """Send the command to stop the shade"""
+        """Send the command to stop the shade."""
         # print(f"STOP ShadeId:{shade_id}")
         await self.shade_command({"shadeId": shade_id, "command": "my"})
 
     async def open_group(self, group_id: int):
-        """Send the command to open the group"""
+        """Send the command to open the group."""
         await self.group_command({"groupId": group_id, "command": "up"})
 
     async def close_group(self, group_id: int):
-        """Send the command to close the group"""
+        """Send the command to close the group."""
         await self.group_command({"groupId": group_id, "command": "down"})
 
     async def stop_group(self, group_id: int):
-        """Send the command to stop the group"""
-        # print(f"STOP GroupId:{group_id}")
+        """Send the command to stop the group."""
         await self.group_command({"groupId": group_id, "command": "my"})
 
     async def position_shade(self, shade_id: int, position: int):
-        """Send the command to position the shade"""
-        # print(f"POS ShadeId:{shade_id} Target:{position}")
+        """Send the command to position the shade."""
         await self.shade_command({"shadeId": shade_id, "target": position})
 
     async def raw_command(self, shade_id: int, command: str, repeat: int):
-        """Send the command to the shade"""
+        """Send the command to the shade."""
         await self.shade_command(
             {"shadeId": shade_id, "command": command, "repeat": repeat}
         )
 
     async def shade_command(self, data):
-        """Send commands to ESPSomfyRTS via PUT request"""
+        """Send commands to ESPSomfyRTS via PUT request."""
         await self.put_command(API_SHADECOMMAND, data)
 
     async def set_current_position(self, shade_id: int, position: int):
-        """Sets the current position without moving the motor"""
+        """Set the current position without moving the motor."""
         await self.put_command(
             API_SETPOSITIONS, {"shadeId": shade_id, "position": position}
         )
 
     async def set_current_tilt_position(self, shade_id: int, tilt_position: int):
-        """Sets the current position without moving the motor"""
+        """Set the current tilt position without moving the motor."""
         await self.put_command(
             API_SETPOSITIONS, {"shadeId": shade_id, "tiltPosition": tilt_position}
         )
 
     async def set_sunny(self, shade_id: int, sunny: bool):
-        """Set the sunny condition for the motor"""
+        """Set the sunny condition for the motor."""
         await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "sunny": sunny})
 
     async def set_windy(self, shade_id: int, windy: bool):
-        """Set the windy condition for the motor"""
+        """Set the windy condition for the motor."""
         await self.put_command(API_SETSENSOR, {"shadeId": shade_id, "windy": windy})
 
     async def put_command(self, command, data):
-        """Sends a put command to the device"""
-        # print(f"Sending: {self._api_url}{command}")
+        """Send a put command to the device."""
         async with self._session.put(f"{self._api_url}{command}", json=data) as resp:
             if resp.status == 200:
                 pass
@@ -852,14 +846,14 @@ class ESPSomfyAPI:
                 _LOGGER.error(await resp.text())
 
     async def login(self, data):
-        """Log in to EPSSomfy device"""
+        """Log in to the EPSSomfy hardware device."""
         if self._canLogin:
             async with self._session.put(
                 f"{self._api_url}{API_LOGIN}", json=data
             ) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    if "success" in data and data["success"]:
+                    if data.get("success"):
                         if "apiKey" in data:
                             self._config["apiKey"] = self._headers["apikey"] = data[
                                 "apiKey"
@@ -868,16 +862,16 @@ class ESPSomfyAPI:
                         if "type" in data:
                             if data["type"] == 1:
                                 raise LoginError(CONF_PIN, "invalid_pin")
-                            elif data["type"] == 2:
+                            if data["type"] == 2:
                                 raise LoginError(CONF_USERNAME, "invalid_password")
                         raise LoginError(CONF_HOST, "invalid_login")
 
                 else:
-                    _LOGGER.error(f"Error logging in: {await resp.text()}")
+                    _LOGGER.error("Error logging in: %s", await resp.text())
                     raise LoginError(f"{self._api_url} - {await resp.text()}")
 
     async def group_command(self, data):
-        """Send commands to ESPSomfyRTS via PUT request"""
+        """Send commands to ESPSomfyRTS via PUT request."""
         async with self._session.put(
             f"{self._api_url}{API_GROUPCOMMAND}", json=data
         ) as resp:
@@ -887,7 +881,7 @@ class ESPSomfyAPI:
                 _LOGGER.error(await resp.text())
 
     async def tilt_command(self, data):
-        """Send commands to ESPSomfyRTS via PUT request"""
+        """Send tilt commands to ESPSomfyRTS via PUT request."""
         async with self._session.put(
             f"{self._api_url}{API_TILTCOMMAND}", json=data
         ) as resp:
@@ -907,7 +901,7 @@ class ESPSomfyAPI:
                     entry = self.hass.config_entries.async_get_entry(
                         self._config_entry_id
                     )
-                    if self._configured == False:
+                    if not self._configured:
                         _LOGGER.debug("ESPSomfy RTS Setting up entities")
                         await self.hass.config_entries.async_forward_entry_setups(
                             entry, PLATFORMS
@@ -924,8 +918,8 @@ class InvalidHost(HomeAssistantError):
 
 
 class DiscoveryError(HomeAssistantError):
-    """Error that occurred during discovery"""
+    """Error that occurred during discovery."""
 
 
 class LoginError(HomeAssistantError):
-    """Error that occurs when login fails"""
+    """Error that occurs when login fails."""

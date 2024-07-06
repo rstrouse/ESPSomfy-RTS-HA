@@ -1,4 +1,5 @@
 """ESPSomfy parent entity class."""
+
 from __future__ import annotations
 
 from homeassistant.helpers.entity import DeviceInfo, Entity
@@ -18,6 +19,7 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
 
     @property
     def should_poll(self) -> bool:
+        """Indicates that the entity should not poll."""
         return False
 
     @property
@@ -30,5 +32,5 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
             manufacturer=MANUFACTURER,
             model=f"ESPSomfy RTS Integration {VERSION}",
             sw_version=self.controller.version,
-            hw_version=None
+            hw_version=None,
         )

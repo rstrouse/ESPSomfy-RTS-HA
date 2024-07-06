@@ -1,19 +1,18 @@
-"""Switches related to ESPSomfy-RTS-HA"""
+"""Switches related to ESPSomfy-RTS-HA."""
+
 from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-
-from .entity import ESPSomfyEntity
+from .const import DOMAIN, EVT_CONNECTED, EVT_GROUPSTATE, EVT_SHADESTATE
 from .controller import ESPSomfyController
-from .const import DOMAIN, EVT_SHADESTATE, EVT_GROUPSTATE, EVT_CONNECTED
+from .entity import ESPSomfyEntity
 
-
-from homeassistant.components.switch import SwitchEntity
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -24,18 +23,26 @@ async def async_setup_entry(
     controller = hass.data[DOMAIN][config_entry.entry_id]
     new_entities = []
     data = controller.api.get_config()
-    if("serverId" in data):
+    if "serverId" in data:
         for shade in controller.api.shades:
             try:
-                if "shadeType" in shade and (int(shade["shadeType"]) == 9 or int(shade["shadeType"] == 10)):
-                    new_entities.append(ESPSomfyBinarySwitch(controller=controller, data=shade))
+                if "shadeType" in shade and (
+                    int(shade["shadeType"]) == 9 or int(shade["shadeType"] == 10)
+                ):
+                    new_entities.append(
+                        ESPSomfyBinarySwitch(controller=controller, data=shade)
+                    )
                 elif "sunSensor" in shade:
                     if shade["sunSensor"] is True:
-                        new_entities.append(ESPSomfySunSwitch(controller=controller, data=shade))
+                        new_entities.append(
+                            ESPSomfySunSwitch(controller=controller, data=shade)
+                        )
                 elif "shadeType" in shade:
-                    match(shade["shadeType"]):
+                    match shade["shadeType"]:
                         case 3:
-                            new_entities.append(ESPSomfySunSwitch(controller=controller, data=shade))
+                            new_entities.append(
+                                ESPSomfySunSwitch(controller=controller, data=shade)
+                            )
             except KeyError:
                 pass
 
@@ -43,7 +50,9 @@ async def async_setup_entry(
             try:
                 if "sunSensor" in group:
                     if group["sunSensor"] is True:
-                        new_entities.append(ESPSomfySunSwitch(controller=controller, data=group))
+                        new_entities.append(
+                            ESPSomfySunSwitch(controller=controller, data=group)
+                        )
 
             except KeyError:
                 pass
@@ -52,10 +61,10 @@ async def async_setup_entry(
 
 
 class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
-    """A sun flag switch for toggling sun mode"""
+    """A sun flag switch for toggling sun mode."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:
-        """Initialize a new SunSwitch"""
+        """Initialize a new SunSwitch."""
         super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = None
@@ -67,7 +76,9 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
         self._available = True
         if "groupId" in data:
             self._group_id = data["groupId"]
-            self._attr_unique_id = f"sunswitch_group_{controller.unique_id}_{self._group_id}"
+            self._attr_unique_id = (
+                f"sunswitch_group_{controller.unique_id}_{self._group_id}"
+            )
             self._sunswitch_type = "group"
         else:
             self._shade_id = data["shadeId"]
@@ -81,28 +92,38 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+        if (
+            self._controller.data["event"] == EVT_CONNECTED
+            and "connected" in self._controller.data
+        ):
             self._available = bool(self._controller.data["connected"])
             self.async_write_ha_state()
-        elif (self._sunswitch_type == "motor"
+        elif (
+            self._sunswitch_type == "motor"
             and "shadeId" in self._controller.data
-            and self._controller.data["shadeId"] == self._shade_id):
+            and self._controller.data["shadeId"] == self._shade_id
+        ):
             if (
                 self._controller.data["event"] == EVT_SHADESTATE
                 and "flags" in self._controller.data
             ):
-                self._attr_is_on = bool((int(self._controller.data["flags"]) & 0x01) == 0x01)
+                self._attr_is_on = bool(
+                    (int(self._controller.data["flags"]) & 0x01) == 0x01
+                )
                 self.async_write_ha_state()
-        elif(self._sunswitch_type == "group"
-             and "groupId" in self._controller.data
-             and self._controller.data["groupId"] == self._group_id):
+        elif (
+            self._sunswitch_type == "group"
+            and "groupId" in self._controller.data
+            and self._controller.data["groupId"] == self._group_id
+        ):
             if (
                 self._controller.data["event"] == EVT_GROUPSTATE
                 and "flags" in self._controller.data
             ):
-                self._attr_is_on = bool((int(self._controller.data["flags"]) & 0x01) == 0x01)
+                self._attr_is_on = bool(
+                    (int(self._controller.data["flags"]) & 0x01) == 0x01
+                )
                 self.async_write_ha_state()
-
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
@@ -110,7 +131,6 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
             await self.coordinator.api.sun_flag_on(self._shade_id)
             return
         await self.coordinator.api.sun_flag_group_on(self._group_id)
-
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
@@ -121,15 +141,15 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
 
     @property
     def available(self) -> bool:
-        """Indicates whether the shade is available"""
+        """Indicates whether the shade is available."""
         return self._available
 
 
 class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
-    """A binary switch for toggling a dry contact"""
+    """A binary switch for toggling a dry contact."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:
-        """Initialize a new BinarySwitch"""
+        """Initialize a new BinarySwitch."""
         super().__init__(controller=controller, data=data)
         self._controller = controller
         self._shade_id = None
@@ -152,16 +172,22 @@ class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
         """Handle updated data from the coordinator."""
         if self.registry_entry.disabled:
             return
-        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+        if (
+            self._controller.data["event"] == EVT_CONNECTED
+            and "connected" in self._controller.data
+        ):
             self._available = bool(self._controller.data["connected"])
             self.async_write_ha_state()
-        elif("position" in self._controller.data and self._controller.data["shadeId"] == self._shade_id):
+        elif (
+            "position" in self._controller.data
+            and self._controller.data["shadeId"] == self._shade_id
+        ):
             self._attr_is_on = bool((int(self._controller.data["position"])) > 0)
             self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
-        """Indicates whether the shade is available"""
+        """Indicates whether the shade is available."""
         return self._available
 
     async def async_turn_on(self, **kwargs: Any) -> None:

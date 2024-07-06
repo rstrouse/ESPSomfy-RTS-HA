@@ -95,15 +95,7 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
             and self._controller.data["shadeId"] == self._shade_id
             and self._controller.data["event"] == EVT_SHADESTATE
             and "flags" in self._controller.data
-        ):
-            if self._attr_is_on != bool(
-                (int(self._controller.data["flags"]) & 0x20) == 0x20
-            ):
-                self._attr_is_on = bool(
-                    (int(self._controller.data["flags"]) & 0x20) == 0x20
-                )
-                self.async_write_ha_state()
-        elif (
+        ) or (
             self._sensor_type == "group"
             and "groupId" in self._controller.data
             and self._controller.data["groupId"] == self._group_id
@@ -174,15 +166,7 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
             and self._controller.data["shadeId"] == self._shade_id
             and self._controller.data["event"] == EVT_SHADESTATE
             and "flags" in self._controller.data
-        ):
-            if self._attr_is_on != bool(
-                (int(self._controller.data["flags"]) & 0x10) == 0x10
-            ):
-                self._attr_is_on = bool(
-                    (int(self._controller.data["flags"]) & 0x10) == 0x10
-                )
-                self.async_write_ha_state()
-        elif (
+        ) or (
             self._sensor_type == "group"
             and "groupId" in self._controller.data
             and self._controller.data["groupId"] == self._group_id
@@ -199,6 +183,7 @@ class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
 
     @property
     def icon(self) -> str:
+        """The icon for the entity."""
         if self.is_on:
             return "mdi:wind-power"
         return "mdi:wind-power-outline"

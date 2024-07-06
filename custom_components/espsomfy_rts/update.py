@@ -1,5 +1,7 @@
 """Support for ESPSomfy RTS updates."""
+
 from __future__ import annotations
+
 from typing import Any, cast
 
 from homeassistant.components.update import (
@@ -7,15 +9,13 @@ from homeassistant.components.update import (
     UpdateEntity,
     UpdateEntityFeature,
 )
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, EVT_FWSTATUS, EVT_UPDPROGRESS, EVT_CONNECTED
+from .const import DOMAIN, EVT_CONNECTED, EVT_FWSTATUS, EVT_UPDPROGRESS
 from .controller import ESPSomfyController
 from .entity import ESPSomfyEntity
-
 
 
 async def async_setup_entry(
@@ -24,9 +24,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up ESPSomfy RTS update based on a config entry."""
-    controller:ESPSomfyController = hass.data[DOMAIN][config_entry.entry_id]
+    controller: ESPSomfyController = hass.data[DOMAIN][config_entry.entry_id]
     data = controller.api.get_config()
-    if("serverId" in data):
+    if "serverId" in data:
         async_add_entities([ESPSomfyRTSUpdateEntity(controller)])
 
 
@@ -34,14 +34,18 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     """Defines an ESPSomfy RTS update entity."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
-    _attr_supported_features = UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS
+    _attr_supported_features = (
+        UpdateEntityFeature.SPECIFIC_VERSION
+        | UpdateEntityFeature.INSTALL
+        | UpdateEntityFeature.PROGRESS
+    )
     _attr_title = "ESPSomfy RTS Firmware"
 
     def __init__(self, controller: ESPSomfyController) -> None:
         """Initialize the update entity."""
         self._controller = controller
         self._available = True
-        self._attr_name = f"Firmware Update"
+        self._attr_name = "Firmware Update"
         self._attr_unique_id = f"update_{controller.unique_id}"
         self._update_status = 0
         self._fw_progress = 100
@@ -49,44 +53,58 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
         self._total_progress = 100
         if controller.check_for_update:
             self._attr_supported_features = (
-                UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
+                UpdateEntityFeature.INSTALL
+                | UpdateEntityFeature.SPECIFIC_VERSION
+                | UpdateEntityFeature.PROGRESS
+                | UpdateEntityFeature.BACKUP
             )
 
         super().__init__(controller=controller, data=None)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if(self._controller.data["event"] == EVT_CONNECTED and "connected" in self._controller.data):
+        if (
+            self._controller.data["event"] == EVT_CONNECTED
+            and "connected" in self._controller.data
+        ):
             self._available = bool(self._controller.data["connected"])
             self.async_write_ha_state()
-        elif(self._controller.data["event"] == EVT_FWSTATUS):
-            if self._controller.check_for_update and self._controller.internet_available:
+        elif self._controller.data["event"] == EVT_FWSTATUS:
+            if (
+                self._controller.check_for_update
+                and self._controller.internet_available
+            ):
                 self._attr_supported_features = (
-                    UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.BACKUP
+                    UpdateEntityFeature.INSTALL
+                    | UpdateEntityFeature.SPECIFIC_VERSION
+                    | UpdateEntityFeature.PROGRESS
+                    | UpdateEntityFeature.BACKUP
                 )
             else:
-                self._attr_supported_features = UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS
+                self._attr_supported_features = (
+                    UpdateEntityFeature.SPECIFIC_VERSION | UpdateEntityFeature.PROGRESS
+                )
             self.async_write_ha_state()
-        elif(self.controller.data["event"] == EVT_UPDPROGRESS):
+        elif self.controller.data["event"] == EVT_UPDPROGRESS:
             d = self.controller.data
             if "part" in d:
                 if int(d["part"]) == 0:
                     self._app_progress = 0
-                    self._fw_progress = (int(d["loaded"])/int(d["total"])) * 100
+                    self._fw_progress = (int(d["loaded"]) / int(d["total"])) * 100
                 elif int(d["part"]) == 100:
                     self._fw_progress = 100
-                    self._app_progress = (int(d["loaded"])/int(d["total"])) * 100
-                self._total_progress = int((self._fw_progress + self._app_progress)/ 2)
+                    self._app_progress = (int(d["loaded"]) / int(d["total"])) * 100
+                self._total_progress = int((self._fw_progress + self._app_progress) / 2)
                 self.async_write_ha_state()
+
     @property
     def available(self) -> bool:
-        """Indicates whether the shade is available"""
+        """Indicates whether the shade is available."""
         return self._available
 
     @property
     def can_install(self) -> bool:
-        """Indicates whether the current version supports firmware installation"""
-
+        """Indicates whether the current version supports firmware installation."""
 
     @property
     def installed_version(self) -> str | None:
@@ -98,9 +116,9 @@ class ESPSomfyRTSUpdateEntity(ESPSomfyEntity, UpdateEntity):
     @property
     def latest_version(self) -> str | None:
         """Latest version available for install."""
-        if(self.coordinator.check_for_update is False):
+        if self.coordinator.check_for_update is False:
             return None
-        if(latest := self.coordinator.latest_version) is None:
+        if (latest := self.coordinator.latest_version) is None:
             return None
         return str(latest)
 

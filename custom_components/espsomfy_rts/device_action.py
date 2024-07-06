@@ -1,4 +1,5 @@
 """Provides device actions for ESPSomfy RTS."""
+
 from __future__ import annotations
 
 import voluptuous as vol
@@ -23,7 +24,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import get_capability
 from homeassistant.helpers.typing import ConfigType, TemplateVarsType
 
-from .const import API_RESTORE, ATTR_RESTOREFILE, DOMAIN, ATTR_AVAILABLE_MODES
+from .const import ATTR_AVAILABLE_MODES, ATTR_RESTOREFILE, DOMAIN
 
 RESTORE_SCHEMA = cv.DEVICE_ACTION_BASE_SCHEMA.extend(
     {
@@ -55,23 +56,27 @@ async def async_get_actions(
     hass: HomeAssistant, device_id: str
 ) -> list[dict[str, str]]:
     """List device actions for ESPSomfy RTS devices."""
-    print("Getting ESPSomfy RTS Actions")
     actions = await toggle_entity.async_get_actions(hass, device_id, DOMAIN)
     registry = er.async_get(hass)
     for entry in er.async_entries_for_device(registry, device_id):
         if entry.entity_id.startswith("button.reboot"):
-            actions.append({CONF_DEVICE_ID: device_id,
-                            CONF_DOMAIN: DOMAIN,
-                            CONF_ENTITY_ID: entry.entity_id,
-                            CONF_TYPE: "Reboot"
-                            })
+            actions.append(
+                {
+                    CONF_DEVICE_ID: device_id,
+                    CONF_DOMAIN: DOMAIN,
+                    CONF_ENTITY_ID: entry.entity_id,
+                    CONF_TYPE: "Reboot",
+                }
+            )
         elif entry.entity_id.startswith("button.backup"):
-            print(entry)
-            actions.append({CONF_DEVICE_ID: device_id,
-                            CONF_DOMAIN: DOMAIN,
-                            CONF_ENTITY_ID: entry.entity_id,
-                            CONF_TYPE: "Backup"
-                            })
+            actions.append(
+                {
+                    CONF_DEVICE_ID: device_id,
+                    CONF_DOMAIN: DOMAIN,
+                    CONF_ENTITY_ID: entry.entity_id,
+                    CONF_TYPE: "Backup",
+                }
+            )
 
     return actions
 
@@ -83,43 +88,35 @@ async def async_call_action_from_config(
     context: Context | None,
 ) -> None:
     """Execute a device action."""
-    service_data = {ATTR_ENTITY_ID: config[CONF_ENTITY_ID]}
     # print(context)
     # print(service_data)
     # print(config)
-    if config[CONF_TYPE] == "restore":
-        service = API_RESTORE
-    elif config[CONF_TYPE] == "Backup":
+    # if config[CONF_TYPE] == "restore":
+    #    service = API_RESTORE
+    if config[CONF_TYPE] == "Backup":
         await hass.services.async_call(
-                DOMAIN,
-                "backup",
-                {
-                    ATTR_ENTITY_ID: config[CONF_ENTITY_ID],
-                },
-                blocking=True,
-                context=context,
-            )
-        return
-
+            DOMAIN,
+            "backup",
+            {
+                ATTR_ENTITY_ID: config[CONF_ENTITY_ID],
+            },
+            blocking=True,
+            context=context,
+        )
     elif config[CONF_TYPE] == "Reboot":
         await hass.services.async_call(
-                DOMAIN,
-                "reboot",
-                {
-                    ATTR_ENTITY_ID: config[CONF_ENTITY_ID],
-                },
-                blocking=True,
-                context=context,
-            )
-        return
+            DOMAIN,
+            "reboot",
+            {
+                ATTR_ENTITY_ID: config[CONF_ENTITY_ID],
+            },
+            blocking=True,
+            context=context,
+        )
     else:
         return await toggle_entity.async_call_action_from_config(
             hass, config, variables, context, DOMAIN
         )
-
-    ## await hass.services.async_call(
-    ##    DOMAIN, service, service_data, blocking=True, context=context
-    ## )
 
 
 async def async_get_action_capabilities(

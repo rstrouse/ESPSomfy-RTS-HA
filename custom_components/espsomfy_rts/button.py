@@ -118,8 +118,9 @@ class ESPSomfyButton(ESPSomfyEntity, ButtonEntity):
         self._attr_icon = cfg.icon
         self._available = True
         self._action = cfg.action
-
+        self._attr_assumed_state = True
         self._attr_supported_features = cfg.features
+
         super().__init__(controller=controller, data=None)
 
     async def async_press(self) -> None:
@@ -135,12 +136,12 @@ class ESPSomfyButton(ESPSomfyEntity, ButtonEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if (
-            self._controller.data["event"] == EVT_CONNECTED
-            and "connected" in self._controller.data
-        ):
-            self._available = bool(self._controller.data["connected"])
-            self.async_write_ha_state()
+        if self._controller.data.get("event", "") == EVT_CONNECTED:
+            if "connected" in self._controller.data and self._attr_available != bool(
+                self._controller.data["connected"]
+            ):
+                self._attr_available = bool(self._controller.data["connected"])
+                self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
