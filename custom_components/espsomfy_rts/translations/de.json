@@ -15,16 +15,14 @@
     },
     "step": {
       "confirm": {
-        "init": {
-          "data": {
-            "host": "ESPSomfy RTS Hostname oder IP",
-            "username": "Name",
-            "password": "Passwort",
-            "pin": "PIN"
-          },
-          "title": "ESPSomfy RTS Konfiguration",
-          "description": "Geben Sie Ihre Daten ein."
-        }
+        "data": {
+          "host": "ESPSomfy RTS Hostname oder IP",
+          "username": "Name",
+          "password": "Passwort",
+          "pin": "PIN"
+        },
+        "title": "ESPSomfy RTS Konfiguration",
+        "description": "Geben Sie Ihre Daten ein."
       },
       "user": {
         "data": {

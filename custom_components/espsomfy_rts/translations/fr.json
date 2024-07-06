@@ -15,16 +15,14 @@
     },
     "step": {
       "confirm": {
-        "init": {
-          "data": {
-            "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
-            "username": "Nom d'utilisateur",
-            "password": "Mot de passe",
-            "pin": "Code PIN"
-          },
-          "title": "Configurer ESPSomfy RTS",
-          "description": "Fournir les options de sécurité configurées pour votre dispositif"
-        }
+        "data": {
+          "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "pin": "Code PIN"
+        },
+        "title": "Configurer ESPSomfy RTS",
+        "description": "Fournir les options de sécurité configurées pour votre dispositif"
       },
       "user": {
         "data": {
@@ -38,7 +36,7 @@
       },
       "zeroconf_confirm": {
         "data": {
-        "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
+          "host": "Adresse hôte pour le dispositif ESPSomfy RTS",
           "username": "Nom d'utilisateur",
           "password": "Mot de passe",
           "pin": "Code PIN"
