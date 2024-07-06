@@ -15,16 +15,14 @@
     },
     "step": {
       "confirm": {
-        "init": {
-          "data": {
-            "host": "Host address for the ESPSomfy RTS device",
-            "username": "Username",
-            "password": "Password",
-            "pin": "Pin Number"
-          },
-          "title": "Configure ESPSomfy RTS",
-          "description": "Provide the configured security options for your device"
-        }
+        "data": {
+          "host": "Host address for the ESPSomfy RTS device",
+          "username": "Username",
+          "password": "Password",
+          "pin": "Pin Number"
+        },
+        "title": "Configure ESPSomfy RTS",
+        "description": "Provide the configured security options for your device"
       },
       "user": {
         "data": {
