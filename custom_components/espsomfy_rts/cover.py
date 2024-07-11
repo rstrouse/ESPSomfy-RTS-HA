@@ -437,6 +437,7 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
     def _handle_state_update(self, data) -> None:
         """Handle the state update."""
         upd = False
+
         if "remoteAddress" in data and self._state_attributes.get(
             "remote_address", 0
         ) != int(data["remoteAddress"]):
@@ -477,12 +478,12 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
             if "tiltPosition" in data and self._tilt_position != data.get(
                 "tiltPosition", -1
             ):
-                self._position = int(data["tiltPosition"])
+                self._tilt_position = int(data["tiltPosition"])
                 upd = True
             if "tiltDirection" in data and self._tilt_direction != data.get(
                 "tiltDirection", 0
             ):
-                self._direction = int(data["tiltDirection"])
+                self._tilt_direction = int(data["tiltDirection"])
                 upd = True
             if "tiltTarget" in data and self._state_attributes.get(
                 "tilt_target", 0
@@ -495,6 +496,12 @@ class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
                 self._state_attributes["my_tilt_pos"] = int(data["myTiltPos"])
                 upd = True
         if upd:
+            if self._has_lift:
+                self._attr_current_cover_position = self.current_cover_position
+            if self._has_tilt:
+                self._attr_current_cover_tilt_position = (
+                    self.current_cover_tilt_position
+                )
             self.async_write_ha_state()
 
     def _handle_state_command(self, data) -> None:
