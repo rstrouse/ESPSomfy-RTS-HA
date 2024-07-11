@@ -15,7 +15,7 @@
       "deviceType": "urn:schemas-rstrouse-org:device:ESPSomfyRTS:1"
     }
   ],
-  "version": "2.4.6",
+  "version": "2.4.7",
   "zeroconf": [
     {
       "type": "_espsomfy_rts._tcp.local.",
