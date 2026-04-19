@@ -34,3 +34,23 @@ class ESPSomfyEntity(CoordinatorEntity[ESPSomfyController], Entity):
             sw_version=self.controller.version,
             hw_version=None,
         )
+
+
+class ESPSomfyShadeEntity(ESPSomfyEntity):
+    """Base entity for ESPSomfy shades."""
+
+    def __init__(self, *, data: any, controller: ESPSomfyController) -> None:
+        """Initialize the entity."""
+        super().__init__(data=data, controller=controller)
+        self._data = data
+
+    @property
+    def device_info(self) -> DeviceInfo | None:
+        """Device info."""
+        return DeviceInfo(
+            configuration_url=self.controller.api.get_config_url(),
+            identifiers={
+                (DOMAIN, f"{self.controller.unique_id}_shade_{self._data['shadeId']}"),
+            },
+            name=self._data["name"],
+        )

@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, EVT_CONNECTED, EVT_GROUPSTATE, EVT_SHADESTATE
 from .controller import ESPSomfyController
-from .entity import ESPSomfyEntity
+from .entity import ESPSomfyShadeEntity
 
 
 async def async_setup_entry(
@@ -54,7 +54,7 @@ async def async_setup_entry(
         async_add_entities(new_entities)
 
 
-class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
+class ESPSomfySunSensor(ESPSomfyShadeEntity, BinarySensorEntity):
     """A sun flag sensor indicating whether there is sun."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:
@@ -123,7 +123,7 @@ class ESPSomfySunSensor(ESPSomfyEntity, BinarySensorEntity):
         return self._available
 
 
-class ESPSomfyWindSensor(ESPSomfyEntity, BinarySensorEntity):
+class ESPSomfyWindSensor(ESPSomfyShadeEntity, BinarySensorEntity):
     """A sun flag sensor indicating whether there is sun."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:

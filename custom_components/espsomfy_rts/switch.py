@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, EVT_CONNECTED, EVT_GROUPSTATE, EVT_SHADESTATE
 from .controller import ESPSomfyController
-from .entity import ESPSomfyEntity
+from .entity import ESPSomfyShadeEntity
 
 
 async def async_setup_entry(
@@ -60,7 +60,7 @@ async def async_setup_entry(
         async_add_entities(new_entities)
 
 
-class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
+class ESPSomfySunSwitch(ESPSomfyShadeEntity, SwitchEntity):
     """A sun flag switch for toggling sun mode."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:
@@ -145,7 +145,7 @@ class ESPSomfySunSwitch(ESPSomfyEntity, SwitchEntity):
         return self._available
 
 
-class ESPSomfyBinarySwitch(ESPSomfyEntity, SwitchEntity):
+class ESPSomfyBinarySwitch(ESPSomfyShadeEntity, SwitchEntity):
     """A binary switch for toggling a dry contact."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:

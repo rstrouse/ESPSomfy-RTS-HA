@@ -32,7 +32,7 @@ from .const import (
     EVT_SHADESTATE,
 )
 from .controller import ESPSomfyController
-from .entity import ESPSomfyEntity
+from .entity import ESPSomfyShadeEntity
 
 SVC_OPEN_SHADE = "open_shade"
 SVC_CLOSE_SHADE = "close_shade"
@@ -183,14 +183,14 @@ async def async_setup_entry(
         )
 
 
-class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
+class ESPSomfyGroup(CoverGroup, ESPSomfyShadeEntity):
     """A grpi[] that is associated with a controller."""
 
     def __init__(
         self, hass: HomeAssistant, controller: ESPSomfyController, data
     ) -> None:
         """Initialize a group."""
-        ESPSomfyEntity.__init__(self=self, controller=controller, data=data)
+        ESPSomfyShadeEntity.__init__(self=self, controller=controller, data=data)
         self._hass = hass
         self._attr_available = True
         self._controller = controller
@@ -342,7 +342,7 @@ class ESPSomfyGroup(CoverGroup, ESPSomfyEntity):
         await self._controller.api.group_command(cmd)
 
 
-class ESPSomfyShade(ESPSomfyEntity, CoverEntity):
+class ESPSomfyShade(ESPSomfyShadeEntity, CoverEntity):
     """A shade that is associated with a controller."""
 
     def __init__(self, controller: ESPSomfyController, data) -> None:
