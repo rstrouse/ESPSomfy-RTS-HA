@@ -58,6 +58,21 @@ _LOGGER = logging.getLogger(__name__)
 logging.getLogger("websocket").setLevel(logging.CRITICAL)
 
 
+def get_device_by_identifier(
+    hass: HomeAssistant, identifier: tuple[str, str], config_entry_id: str
+) -> dr.DeviceEntry | None:
+    """Get the device for an identifier owned by the config entry.
+
+    Identifiers are only unique per config entry since HA 2026.8 and
+    async_get_device(identifiers=...) stops working in 2027.8. Fall back to
+    it on older HA versions that lack async_get_device_by_identifier.
+    """
+    dev_registry = dr.async_get(hass)
+    if getter := getattr(dev_registry, "async_get_device_by_identifier", None):
+        return getter(identifier, config_entry_id)
+    return dev_registry.async_get_device(identifiers={identifier})
+
+
 class SocketListener(threading.Thread):
     """A listener of sockets."""
 
@@ -317,8 +332,9 @@ class ESPSomfyController(DataUpdateCoordinator):
     def ensure_group_configured(self, data):
         """Ensure the group exists on Home Assistant."""
         uuid = f"{self.unique_id}_group{data['groupId']}"
-        devices = dr.async_get(self.hass)
-        device = devices.async_get_device({(DOMAIN, self.unique_id)})
+        device = get_device_by_identifier(
+            self.hass, (DOMAIN, self.unique_id), self.config_entry_id
+        )
         entities = er.async_get(self.hass)
         for entity in er.async_entries_for_config_entry(entities, self.config_entry_id):
             if entity.unique_id == uuid:
@@ -346,8 +362,9 @@ class ESPSomfyController(DataUpdateCoordinator):
         """Ensure the shade exists on Home Assistant."""
         uuid = f"{self.unique_id}_{data['shadeId']}"
 
-        devices = dr.async_get(self.hass)
-        device = devices.async_get_device({(DOMAIN, self.unique_id)})
+        device = get_device_by_identifier(
+            self.hass, (DOMAIN, self.unique_id), self.config_entry_id
+        )
 
         entities = er.async_get(self.hass)
 
@@ -598,13 +615,13 @@ class ESPSomfyAPI:
             self._config["checkForUpdate"] = data["checkForUpdate"]
         if "inetAvailable" in data:
             self._config["inetAvailable"] = data["inetAvailable"]
-        if cver != new_ver:
-            # print(f"Version: {cver} to {new_ver}")
-            dev_registry = dr.async_get(self.hass)
-            if dev := dev_registry.async_get_device(
-                identifiers={(DOMAIN, f"espsomfy_{self.server_id}")}
-            ):
-                dev_registry.async_update_device(dev.id, sw_version=new_ver)
+        # print(f"Version: {cver} to {new_ver}")
+        if cver != new_ver and (
+            dev := get_device_by_identifier(
+                self.hass, (DOMAIN, f"espsomfy_{self.server_id}"), self._config_entry_id
+            )
+        ):
+            dr.async_get(self.hass).async_update_device(dev.id, sw_version=new_ver)
         self._config["version"] = new_ver
         v = version_parse(new_ver)
         if (
